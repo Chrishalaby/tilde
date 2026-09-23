@@ -8,6 +8,7 @@ import { createRenderer } from './render/renderer';
 import { skyAt } from './render/sky';
 import { createPlayer } from './player/controller';
 import { createDrift } from './player/drift';
+import { keyCode } from './player/keys';
 import { createAudio } from './audio/index';
 import { loadPose, loadSettings, loadWorld, savePose, saveSettings, saveWorld } from './state/store';
 import { openDb, type Discovery } from './state/db';
@@ -135,7 +136,7 @@ async function boot() {
   window.addEventListener('keydown', startAudio);
 
   window.addEventListener('keydown', (ev) => {
-    switch (ev.code) {
+    switch (keyCode(ev)) {
       case 'KeyM':
         mapOpen = !mapOpen;
         journalOpen = false;

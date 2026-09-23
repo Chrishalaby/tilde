@@ -2,6 +2,8 @@
 
 A quiet, endless world you walk through, drawn with nothing but one font.
 
+Live: https://tilde-production-b719.up.railway.app (the design case study is at /design.html).
+
 Three dimensions underneath, punctuation on top. Every chunk of terrain is a pure function of the world seed and its coordinates, generated in Web Workers as you approach, so the world is infinite and never changes. The scene is rendered untextured into a small buffer, then a shader picks one glyph per screen cell from a single monospace font. Music, wind, water and the reverb tail are all synthesised. The only asset in the repository is the font.
 
 ## Play

@@ -2,6 +2,7 @@ import {
   ACCEL_TIME, CAMERA_LAG, DECEL_TIME, EYE_HEIGHT, LOOK_SENSITIVITY, MAX_WADE_DEPTH,
   SEA_LEVEL, STROLL_SPEED, WALK_SPEED,
 } from '../config';
+import { keyCode } from './keys';
 
 export interface PlayerPose {
   x: number;
@@ -79,10 +80,11 @@ export function createPlayer(opts: PlayerOptions): Player {
 
   const onKeyDown = (ev: KeyboardEvent) => {
     if (isTyping(ev)) return;
-    keys.add(ev.code);
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(ev.code)) ev.preventDefault();
+    const code = keyCode(ev);
+    keys.add(code);
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(code)) ev.preventDefault();
   };
-  const onKeyUp = (ev: KeyboardEvent) => { keys.delete(ev.code); };
+  const onKeyUp = (ev: KeyboardEvent) => { keys.delete(keyCode(ev)); };
   const onBlur = () => { keys.clear(); };
   const onClick = () => {
     if (!locked && canvas.requestPointerLock) {

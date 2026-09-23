@@ -13,8 +13,8 @@ const CONTINENT_BIAS = 12;
 
 const RIDGE_FREQ = 1 / 400;
 const RIDGE_AMPLITUDE = 90;
-const RIDGE_LOW = 0.68;
-const RIDGE_HIGH = 0.96;
+const RIDGE_LOW = 0.45;
+const RIDGE_HIGH = 0.95;
 const RIDGE_LAND_BIAS = 0.25;
 
 const HILL_FREQ = 1 / 100;
