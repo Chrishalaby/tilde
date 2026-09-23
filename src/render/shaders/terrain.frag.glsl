@@ -38,7 +38,7 @@ void main() {
   float scrub = 1.0;
   if (material < 1.5) {
     float p = 0.6 * vnoise(vWorld.xz / 9.0) + 0.4 * vnoise(vWorld.xz / 27.0);
-    scrub = 1.0 - 0.22 * smoothstep(0.55, 0.80, p);
+    scrub = 1.0 - 0.35 * smoothstep(0.55, 0.80, p);
   }
 
   float light = clamp((lambert * uSunStrength + hemi) * scrub, 0.0, 1.0);

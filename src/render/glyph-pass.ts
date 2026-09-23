@@ -3,7 +3,7 @@ import {
   BufferGeometry,
   GLSL3,
   LinearFilter,
-  LinearMipmapLinearFilter,
+  LinearMipmapNearestFilter,
   Mesh,
   OrthographicCamera,
   Scene,
@@ -28,7 +28,7 @@ function clamp(value: number, low: number, high: number): number {
 
 export function createGlyphPass(atlas: GlyphAtlas): GlyphPass {
   atlas.texture.generateMipmaps = true;
-  atlas.texture.minFilter = LinearMipmapLinearFilter;
+  atlas.texture.minFilter = LinearMipmapNearestFilter;
   atlas.texture.magFilter = LinearFilter;
   atlas.texture.needsUpdate = true;
 
@@ -53,6 +53,7 @@ export function createGlyphPass(atlas: GlyphAtlas): GlyphPass {
       uCellPx: { value: new Vector2(1, 1) },
       uResolution: { value: new Vector2(1, 1) },
       uAtlasCells: { value: new Vector2(atlas.cols, atlas.rows) },
+      uGlyphPx: { value: new Vector2(GLYPH_W, GLYPH_H) },
       uAtlasLod: { value: 0 },
       uGlyphCount: { value: GLYPHS.length },
       uTime: { value: 0 },

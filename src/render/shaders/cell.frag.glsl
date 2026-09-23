@@ -13,6 +13,7 @@ uniform vec3 uMoonPos;
 uniform vec3 uLightDir;
 uniform float uTwilight;
 uniform vec3 uZenith;
+uniform vec3 uBand;
 uniform vec3 uHorizon;
 uniform vec3 uHorizonSun;
 uniform vec3 uFogNear;
@@ -77,7 +78,8 @@ vec3 horizonAt(vec3 d) {
 
 vec3 skyGradient(vec3 d) {
   float e = d.y;
-  if (e >= 0.0) return mix(horizonAt(d), uZenith, pow(e, 0.45));
+  if (e >= 0.15) return mix(uBand, uZenith, pow((e - 0.15) / 0.85, 0.6));
+  if (e >= 0.0) return mix(horizonAt(d), uBand, pow(e / 0.15, 0.7));
   return mix(horizonAt(d), uSeaFar, smoothstep(0.0, 0.12, -e));
 }
 
@@ -147,10 +149,14 @@ float cloudGlyph(int i) {
   return uCloudGlyphs.w;
 }
 
-float densityFor(float s, float fog) {
+float luma(vec3 c) {
+  return dot(c, vec3(0.299, 0.587, 0.114));
+}
+
+float densityFor(float s, float fog, float lighter) {
   float shadeD = 0.12 + 0.88 * (1.0 - s);
   float litD = 0.12 + 0.88 * s;
-  return clamp(mix(shadeD, litD, uNight) * (1.0 - fog * 0.75), 0.0, 0.999);
+  return clamp(mix(shadeD, litD, lighter) * (1.0 - fog * 0.75), 0.0, 0.999);
 }
 
 void main() {
@@ -234,7 +240,7 @@ void main() {
 
     if (dir.y > 0.0) {
       float t = uCloudY / (dir.y + 0.12);
-      vec2 drift = uWind * uTime;
+      vec2 drift = uWind * mod(uTime, 20000.0);
       vec2 uv = (uCamPos.xz + dir.xz * t) / uCloudScale + drift;
       float detail = clamp(1.5 - t / 3000.0, 0.0, 1.0);
       float d = fbm(uv, detail);
@@ -246,19 +252,21 @@ void main() {
       float dU = fbm(uv + du / max(length(du), 1e-5) * 0.05, detail);
       float dS = fbm(uv + azim(uLightDir) * 0.05 * (1.0 - clamp(uLightDir.y, 0.0, 1.0)), detail);
 
-      cover = smoothstep(uCloudCover, uCloudCover + 0.14, d) * smoothstep(0.0, 0.06, dir.y) * exp(-t / 12000.0);
-      float coverQ = floor(cover * 4.0 + 0.5) / 4.0;
+      float haze = 1.0 - exp(-t / 12000.0);
+      cover = smoothstep(uCloudCover, uCloudCover + 0.14, d) * smoothstep(0.0, 0.06, dir.y);
+      float coverQ = floor(cover * 3.0 + 0.66) / 3.0;
 
       float topness = clamp(0.5 + (d - dU) * 7.0, 0.0, 1.0);
       float sunness = clamp(0.5 + (d - dS) * 7.0, 0.0, 1.0);
-      float litness = clamp(0.55 * topness + 0.45 * sunness, 0.0, 1.0);
+      float litness = clamp(0.62 + (0.55 * (topness - 0.5) + 0.45 * (sunness - 0.5)) * 1.4, 0.0, 1.0);
       vec3 cloudCol = litness < 0.5
         ? mix(uCloudShade, uCloudLit, litness * 2.0)
         : mix(uCloudLit, uCloudBright, (litness - 0.5) * 2.0);
       float body = smoothstep(uCloudCover + 0.08, uCloudCover + 0.34, d);
-      cloudCol = mix(cloudCol, uCloudShade, body * 0.35);
+      cloudCol = mix(cloudCol, uCloudShade, body * (1.0 - topness) * 0.5);
       float sd = max(dot(dir, uSunPos), 0.0);
       cloudCol = screen(cloudCol, uSunTint * sunVis() * 0.4 * pow(sd, 6.0));
+      cloudCol = mix(cloudCol, horizonAt(dir), haze * 0.6);
 
       bg = mix(col, cloudCol, coverQ);
       gl = mix(bg, uCloudShade, 0.45);
@@ -268,7 +276,11 @@ void main() {
 
     if (uNight > 0.02 && dir.y > 0.02) {
       for (int i = 0; i < 64; i++) {
-        if (dot(dir, uStars[i]) > 0.99996) {
+        vec3 sv = uStars[i] * uCamBasis;
+        if (sv.z >= 0.0) continue;
+        vec2 ndc = vec2(-sv.x / sv.z / (uTanHalf * uAspect), -sv.y / sv.z / uTanHalf);
+        if (abs(ndc.x) >= 1.0 || abs(ndc.y) >= 1.0) continue;
+        if (all(equal(ivec2(floor((ndc * 0.5 + 0.5) * uCells)), cell))) {
           glyph = uStarGlyph;
           gl = uStar;
           float twinkle = 0.65 + 0.35 * sin(uTime * 1.1 + float(i) * 2.4);
@@ -278,11 +290,11 @@ void main() {
       }
     }
   } else if (m == 5) {
-    vec3 r = vec3(dir.x, max(-dir.y, 0.02), dir.z);
+    vec3 r = normalize(vec3(dir.x, max(-dir.y, 0.02), dir.z));
     vec3 sunPath = uSunTint * sunVis() * 0.35 * pow(max(dot(r, uSunPos), 0.0), 48.0);
     vec3 moonPath = uMoonTint * moonVis() * 0.25 * pow(max(dot(r, uMoonPos), 0.0), 60.0);
-    vec3 skyRefl = screen(screen(skyGradient(r), sunPath), moonPath);
-    float fresnel = 0.25 + 0.60 * pow(1.0 - clamp(-dir.y, 0.0, 1.0), 2.0);
+    vec3 skyRefl = mix(screen(screen(skyGradient(r), sunPath), moonPath), uSeaFar, 0.2);
+    float fresnel = 0.15 + 0.55 * pow(1.0 - clamp(-dir.y, 0.0, 1.0), 2.0);
     float s = clamp((key - 0.35) / 0.30, 0.0, 1.0);
     vec3 baseCol = mix(palette(5, 1), palette(5, 0), s);
     vec3 water = mix(baseCol, skyRefl, fresnel);
@@ -303,7 +315,8 @@ void main() {
 
     bg = water;
     gl = mix(palette(5, 3), palette(5, 2), s);
-    int rs = (int(densityFor(s, fog) * 16.0) + int(uTime * 0.6 + cellHash * 4.0)) % 16;
+    float lighter = step(luma(bg), luma(gl));
+    int rs = (int(densityFor(s, fog, lighter) * 16.0) + int(uTime * 0.6 + cellHash * 4.0)) % 16;
     glyph = rampGlyph(5, rs);
     if (shore > 0.3) {
       glyph = uFoamGlyph;
@@ -315,7 +328,8 @@ void main() {
   } else if (m == 10) {
     bg = palette(10, 0);
     gl = palette(10, 2);
-    int rs = (int(densityFor(1.0, fog) * 16.0) + int(uTime * 0.6 + cellHash * 4.0)) % 16;
+    float lighter = step(luma(bg), luma(gl));
+    int rs = (int(densityFor(1.0, fog, lighter) * 16.0) + int(uTime * 0.6 + cellHash * 4.0)) % 16;
     glyph = rampGlyph(10, rs);
     weight = uGlyphStrength;
   } else if (m == 6 || m == 11) {
@@ -346,7 +360,8 @@ void main() {
     }
     bg = mix(c1, c0, s);
     gl = mix(c3, c2, s);
-    int rs = int(densityFor(s, fog) * 16.0);
+    float lighter = step(luma(bg), luma(gl));
+    int rs = int(densityFor(s, fog, lighter) * 16.0);
     glyph = rampGlyph(m, rs);
     if (isEdge) {
       glyph = edgeGlyph(gx, gy);
@@ -356,7 +371,7 @@ void main() {
   }
 
   if (fogged) {
-    vec3 fogFar = skyGradient(dir);
+    vec3 fogFar = m == 5 ? mix(skyGradient(dir), uSeaFar, 0.5) : skyGradient(dir);
     vec3 fogCol = mix(uFogNear, fogFar, fog);
     float fogAmount = clamp(fog * 1.08, 0.0, 1.0);
     bg = mix(bg, fogCol, fogAmount);

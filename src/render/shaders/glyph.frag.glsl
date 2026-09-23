@@ -6,6 +6,7 @@ uniform vec2 uCells;
 uniform vec2 uCellPx;
 uniform vec2 uResolution;
 uniform vec2 uAtlasCells;
+uniform vec2 uGlyphPx;
 uniform float uAtlasLod;
 uniform float uGlyphCount;
 uniform float uTime;
@@ -23,7 +24,8 @@ void main() {
   vec2 frag = gl_FragCoord.xy;
   vec2 cellSize = max(uCellPx, vec2(1.0));
   vec2 cell = clamp(floor(frag / cellSize), vec2(0.0), max(uCells - 1.0, vec2(0.0)));
-  vec2 inCell = clamp((frag - cell * cellSize) / cellSize, 0.015, 0.985);
+  vec2 inset = min(0.5 * exp2(uAtlasLod) / max(uGlyphPx, vec2(1.0)), vec2(0.45));
+  vec2 inCell = clamp((frag - cell * cellSize) / cellSize, inset, 1.0 - inset);
 
   ivec2 c = ivec2(cell);
   vec4 p0 = texelFetch(uPaint, ivec2(c.x * 2, c.y), 0);
@@ -36,7 +38,7 @@ void main() {
 
   vec3 col = mix(p0.rgb, p1.rgb, clamp(coverage * p1.a, 0.0, 1.0));
 
-  col += (hash21(frag + uTime) - 0.5) * uGrain;
+  col += (hash21(frag + mod(uTime, 64.0)) - 0.5) * uGrain;
 
   vec2 screenUv = uResolution.x > 0.0 ? frag / uResolution : vUv;
   col *= 1.0 - 0.10 * smoothstep(0.5, 1.2, length(screenUv - 0.5) * 1.6);

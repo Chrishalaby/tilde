@@ -111,6 +111,7 @@ export function createCellPass(atlas: GlyphAtlas): CellPass {
       uLightDir: { value: new Vector3(0, 1, 0) },
       uTwilight: { value: 0 },
       uZenith: { value: new Vector3() },
+      uBand: { value: new Vector3() },
       uHorizon: { value: new Vector3() },
       uHorizonSun: { value: new Vector3() },
       uFogNear: { value: new Vector3() },
@@ -158,6 +159,8 @@ export function createCellPass(atlas: GlyphAtlas): CellPass {
     (material.uniforms[name].value as Vector3).set(c.r, c.g, c.b);
   };
 
+  let lastSky: SkyState | null = null;
+
   return {
     target,
 
@@ -181,13 +184,15 @@ export function createCellPass(atlas: GlyphAtlas): CellPass {
       uniforms.uNight.value = sky.night;
       (uniforms.uCamBasis.value as Matrix3).setFromMatrix4(view.matrixWorld);
       (uniforms.uCamPos.value as Vector3).setFromMatrixPosition(view.matrixWorld);
-      uniforms.uTanHalf.value = Math.tan((view.fov * Math.PI) / 360);
-      uniforms.uAspect.value = view.aspect;
+      const proj = view.projectionMatrix.elements;
+      uniforms.uTanHalf.value = proj[5] === 0 ? 1 : 1 / proj[5];
+      uniforms.uAspect.value = proj[0] === 0 ? 1 : proj[5] / proj[0];
       (uniforms.uSunPos.value as Vector3).copy(sky.sunPos);
       (uniforms.uMoonPos.value as Vector3).copy(sky.moonPos);
       (uniforms.uLightDir.value as Vector3).copy(sky.sunDir);
       uniforms.uTwilight.value = sky.twilight;
       setColour('uZenith', sky.zenith);
+      setColour('uBand', sky.band);
       setColour('uHorizon', sky.horizon);
       setColour('uHorizonSun', sky.horizonSun);
       setColour('uFogNear', sky.fogNear);
@@ -203,19 +208,21 @@ export function createCellPass(atlas: GlyphAtlas): CellPass {
       setColour('uShallow', sky.shallow);
       setColour('uFoam', sky.foam);
 
-      for (let i = 0; i < STAR_COUNT; i++) {
-        const s = sky.stars[i];
-        if (s) stars[i].copy(s);
+      if (sky !== lastSky) {
+        lastSky = sky;
+        for (let i = 0; i < STAR_COUNT; i++) {
+          const s = sky.stars[i];
+          if (s) stars[i].copy(s);
+        }
+        for (let m = 0; m < MATERIAL_COUNT; m++) {
+          const row = m * 16;
+          writeColour(paletteData, row, sky.bgLit[m] ?? sky.paper);
+          writeColour(paletteData, row + 4, sky.bgShade[m] ?? sky.paper);
+          writeColour(paletteData, row + 8, sky.inks[m] ?? sky.ink);
+          writeColour(paletteData, row + 12, sky.glyphShade[m] ?? sky.ink);
+        }
+        palette.needsUpdate = true;
       }
-
-      for (let m = 0; m < MATERIAL_COUNT; m++) {
-        const row = m * 16;
-        writeColour(paletteData, row, sky.bgLit[m] ?? sky.paper);
-        writeColour(paletteData, row + 4, sky.bgShade[m] ?? sky.paper);
-        writeColour(paletteData, row + 8, sky.inks[m] ?? sky.ink);
-        writeColour(paletteData, row + 12, sky.glyphShade[m] ?? sky.ink);
-      }
-      palette.needsUpdate = true;
 
       renderer.setRenderTarget(target);
       renderer.render(scene, camera);

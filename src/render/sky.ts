@@ -13,6 +13,7 @@ export interface SkyState {
   sunStrength: number;
   night: number;
   zenith: Color;
+  band: Color;
   horizon: Color;
   horizonSun: Color;
   fogNear: Color;
@@ -100,6 +101,7 @@ function colourKeys(k: Keyed<number>): Color[] {
 }
 
 const ZENITH = colourKeys({ night: 0x0f1530, dawn: 0x56679b, day: 0x4a6fb0, dusk: 0x4e5a8e });
+const BAND = colourKeys({ night: 0x1e2841, dawn: 0xc9aab4, day: 0x8fa5c6, dusk: 0xbf9aa4 });
 const HORIZON = colourKeys({ night: 0x2e3b55, dawn: 0xd8c2b0, day: 0xb8c4d2, dusk: 0xd1b2a4 });
 const HORIZON_SUN = colourKeys({ night: 0x2e3b55, dawn: 0xf0b98c, day: 0xc9cdd2, dusk: 0xf0a470 });
 const SEA_FAR = colourKeys({ night: 0x1c2840, dawn: 0x8c8a96, day: 0x6c7f93, dusk: 0x7e7590 });
@@ -112,7 +114,7 @@ const INK = colourKeys({ night: 0xd2dae6, dawn: 0x2a2a36, day: 0x1e2733, dusk: 0
 const SHALLOW = colourKeys({ night: 0x3d5f7b, dawn: 0x7e896d, day: 0x7ea6a8, dusk: 0x7e7c5c });
 const FOAM = colourKeys({ night: 0x6b84a9, dawn: 0xdcbe97, day: 0xdce6e8, dusk: 0xdcab7f });
 
-const KEY_TINT = { dawn: rgb(0xffd3a6), dusk: rgb(0xffbe8c), night: rgb(0x7c92ba) };
+const KEY_TINT = { dawn: rgb(0xffe0c2), dusk: rgb(0xffd2ae), night: rgb(0x7c92ba) };
 const FILL_TINT = { dawn: rgb(0xb9c3de), dusk: rgb(0xb4add0), night: rgb(0x4a5a80) };
 const MOON_GLYPH = rgb(0xc4d0e8);
 
@@ -123,16 +125,16 @@ const STAR = rgb(0xdce3f0);
 type Row = [number, number, number, number];
 
 const NOON: Record<number, Row> = {
-  [MATERIAL.GRASS]: [0x5a7f4a, 0x3f5f3a, 0x43623b, 0x2f492e],
-  [MATERIAL.FOREST]: [0x4e7343, 0x365235, 0x3a5936, 0x283f2a],
-  [MATERIAL.STONE]: [0x8a8678, 0x5c5f62, 0x666760, 0x44494e],
-  [MATERIAL.SAND]: [0xc9b98e, 0x9b9375, 0x958e72, 0x73715e],
+  [MATERIAL.GRASS]: [0x5a7f4a, 0x3f5f3a, 0x395231, 0x26402a],
+  [MATERIAL.FOREST]: [0x4e7343, 0x365235, 0x314a2d, 0x213524],
+  [MATERIAL.STONE]: [0x8a8678, 0x5c5f62, 0x585a55, 0x3a3f44],
+  [MATERIAL.SAND]: [0xc9b98e, 0x9b9375, 0x857e64, 0x655f4d],
   [MATERIAL.SNOW]: [0xeef0f2, 0xaebcd0, 0xb0b9c2, 0x8191a6],
   [MATERIAL.WATER]: [0x3d6478, 0x34576a, 0x7a9dac, 0x64879a],
   [MATERIAL.LETTER]: [0x2b2e33, 0x1f2226, 0xe8e4d8, 0xc9c5ba],
   [MATERIAL.NONE]: [0xb8c4d2, 0xb8c4d2, 0xb8c4d2, 0xb8c4d2],
-  [MATERIAL.TREE]: [0x2f4d36, 0x223a2a, 0x233b2b, 0x192d22],
-  [MATERIAL.TRUNK]: [0x4a3a2b, 0x33291f, 0x372d22, 0x262019],
+  [MATERIAL.TREE]: [0x2f4d36, 0x223a2a, 0x152a1c, 0x0f2016],
+  [MATERIAL.TRUNK]: [0x4a3a2b, 0x33291f, 0x2a2016, 0x1a140e],
   [MATERIAL.FIRE]: [0xe0893a, 0xe0893a, 0xffe2a6, 0xffe2a6],
   [MATERIAL.FIGURE]: [0x3c3a38, 0x2a292b, 0xefe8d6, 0xcfc8b8],
 };
@@ -191,7 +193,7 @@ let lastState: SkyState | null = null;
 
 export function skyAt(timeOfDay: number): SkyState {
   const raw = Number.isFinite(timeOfDay) ? timeOfDay : 0;
-  const t = raw - Math.floor(raw);
+  const t = Math.round((raw - Math.floor(raw)) * 8192) / 8192;
   if (lastState !== null && t === lastT) return lastState;
 
   const mixes = [
@@ -205,10 +207,11 @@ export function skyAt(timeOfDay: number): SkyState {
   const night = Math.min(1, Math.max(0, 1 - day));
 
   const zenith = blend(ZENITH, mixes);
+  const band = blend(BAND, mixes);
   const horizon = blend(HORIZON, mixes);
   const horizonSun = blend(HORIZON_SUN, mixes);
   const seaFar = blend(SEA_FAR, mixes);
-  const fogNear = lerp(horizon, zenith, 0.35);
+  const fogNear = lerp(horizon, band, 0.5);
   const sunTint = blend(SUN_TINT, mixes);
   const cloudBright = blend(CLOUD_BRIGHT, mixes);
   const cloudLit = blend(CLOUD_LIT, mixes);
@@ -236,8 +239,9 @@ export function skyAt(timeOfDay: number): SkyState {
   const sunPos = new Vector3(across - 0.45, elevation * 0.95 - 0.02, 0.55).normalize();
   const moonPos = new Vector3(0.3 - across, 0.1 - elevation * 0.8, -0.5).normalize();
   const twilight = Math.min(1, Math.max(0, 1 - Math.abs(sunPos.y) / 0.22));
-  const sunDir = raise(sunPos).lerp(raise(moonPos), night).normalize();
-  const sunStrength = 1 - 0.4 * night;
+  const toMoon = 1 - smoothstep(-0.12, 0.02, sunPos.y);
+  const sunDir = raise(sunPos).lerp(raise(moonPos), toMoon).normalize();
+  const sunStrength = 1 - 0.15 * night;
 
   const state: SkyState = {
     paper: horizon,
@@ -250,6 +254,7 @@ export function skyAt(timeOfDay: number): SkyState {
     sunStrength,
     night,
     zenith,
+    band,
     horizon,
     horizonSun,
     fogNear,

@@ -29,7 +29,7 @@ export const DEFAULT_SETTINGS: Settings = {
   headBob: true,
 };
 
-const SETTINGS_KEY = 'tilde.settings';
+const SETTINGS_KEY = 'tilde.settings.v2';
 const WORLD_KEY = 'tilde.world';
 const POSE_KEY = 'tilde.pose';
 

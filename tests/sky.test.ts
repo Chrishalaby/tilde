@@ -77,6 +77,25 @@ describe('skyAt', () => {
     expect(skyAt(0).night).toBe(1);
     expect(skyAt(0.5).night).toBe(0);
     expect(skyAt(0.5).sunStrength).toBe(1);
-    expect(skyAt(0).sunStrength).toBeCloseTo(0.6, 5);
+    expect(skyAt(0).sunStrength).toBeCloseTo(0.85, 5);
+  });
+
+  it('keeps the key light leaning toward the sun at the twilight peaks', () => {
+    for (const t of [0.25, 0.75]) {
+      const sky = skyAt(t);
+      const across = sky.sunDir.x * sky.sunPos.x + sky.sunDir.z * sky.sunPos.z;
+      expect(across).toBeGreaterThan(0.2);
+    }
+  });
+
+  it('puts a luminous mid band between horizon and zenith', () => {
+    for (const t of [0, 0.25, 0.5, 0.75]) {
+      const sky = skyAt(t);
+      const band = sky.band.r + sky.band.g + sky.band.b;
+      const zenith = sky.zenith.r + sky.zenith.g + sky.zenith.b;
+      const horizon = sky.horizon.r + sky.horizon.g + sky.horizon.b;
+      expect(band).toBeGreaterThan(zenith);
+      expect(band).toBeLessThan(horizon);
+    }
   });
 });
