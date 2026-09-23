@@ -13,18 +13,31 @@ import { createPlayer } from './player/controller';
 import { createDrift } from './player/drift';
 import { keyCode } from './player/keys';
 import { createAudio } from './audio/index';
-import { loadPose, loadSettings, loadWorld, savePose, saveSettings, saveWorld } from './state/store';
-import { openDb, type Discovery } from './state/db';
-import { createOverlay } from './ui/overlay';
+import {
+  loadPose, loadSettings, loadTravel, loadWorld, savePose, saveSettings, saveTravel, saveWorld, type Travel,
+} from './state/store';
+import { openDb, type Discovery, type JournalEntry, type PersonEntry, type TraceEntry } from './state/db';
+import {
+  createOverlay, isTraceKind, placeName, traceName, type DialogueHandlers, type JournalView,
+} from './ui/overlay';
 import { createNpcManager } from './npc/manager';
 import { localBrain } from './npc/brain';
 import { createRemoteBrain } from './npc/remote-brain';
-import type { NpcWorld, PlayerView } from './npc/types';
+import { createConversation, type ConversationView } from './npc/conversation';
+import { villagerInSight } from './npc/focus';
+import type { NpcSnapshot, NpcWorld, PlayerView } from './npc/types';
 import { createNpcRenderer } from './render/npcs';
 
 const SPEAK_RANGE = 12;
 const MAP_PROBE = 2;
 const FIRE_RANGE = 400;
+const TRACE_RANGE = 8;
+const TRACE_POLL = 0.3;
+const DAWN = 0.25;
+const GREET_GAP = 30;
+const STRIDE_LIMIT = 25;
+const PERSON = 'person:';
+const TRACE = 'trace:';
 
 interface Spawn { x: number; z: number; yaw: number; pitch: number }
 
@@ -110,6 +123,28 @@ function findSpawn(sampler: WorldSampler): Spawn {
   return best || { x: 0, z: 0, yaw: 0, pitch: 0 };
 }
 
+function typingInto(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el || typeof el.tagName !== 'string') return false;
+  return el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable === true;
+}
+
+function traceKey(kind: number, x: number, z: number): string {
+  return TRACE + Math.round(kind) + ':' + Math.round(x) + ',' + Math.round(z);
+}
+
+function freshTravel(origin: { x: number; z: number }): Travel {
+  return { day: 1, walked: 0, startX: origin.x, startZ: origin.z };
+}
+
+function releasePointer(): void {
+  try {
+    if (document.pointerLockElement && typeof document.exitPointerLock === 'function') document.exitPointerLock();
+  } catch {
+    return;
+  }
+}
+
 function fail(root: HTMLElement, message: string) {
   root.style.pointerEvents = 'auto';
   root.innerHTML = '';
@@ -149,6 +184,8 @@ async function boot() {
   const discovered = new Map<string, Discovery>();
   for (const d of await db.listDiscoveries()) discovered.set(d.id, d);
   const visited = new Set<string>(await db.listVisited());
+  const journal = new Map<string, JournalEntry>();
+  for (const entry of await db.listJournal()) journal.set(entry.id, entry);
 
   const manager = createChunkManager({
     seed,
@@ -166,8 +203,26 @@ async function boot() {
   spawnSeed = seed;
   const spawn = savedPose ? { x: savedPose.x, z: savedPose.z, yaw: savedPose.yaw, pitch: savedPose.pitch } : findSpawn(sampler);
   let timeOfDay = savedPose ? savedPose.timeOfDay : 0.34;
+  const travel: Travel = loadTravel(seed) ?? freshTravel(savedPose ? findSpawn(sampler) : spawn);
+  saveTravel(seed, travel);
 
-  const player = createPlayer({ canvas, heightAt: manager.heightAt, initial: spawn, headBob: settings.headBob });
+  let people: NpcSnapshot[] = [];
+  const bump = (x: number, z: number, radius: number): { x: number; z: number } => {
+    const out = manager.collide(x, z, radius);
+    for (let i = 0; i < people.length; i++) {
+      const p = people[i];
+      const dx = out.x - p.x;
+      const dz = out.z - p.z;
+      const reach = radius + 0.3;
+      const d2 = dx * dx + dz * dz;
+      if (d2 >= reach * reach || d2 < 1e-8) continue;
+      const d = Math.sqrt(d2);
+      out.x = p.x + (dx / d) * reach;
+      out.z = p.z + (dz / d) * reach;
+    }
+    return out;
+  };
+  const player = createPlayer({ canvas, heightAt: manager.heightAt, initial: spawn, headBob: settings.headBob, collide: bump });
   const drift = createDrift(player, manager.heightAt);
   const audio = createAudio();
   audio.setVolume(settings.volume);
@@ -199,20 +254,27 @@ async function boot() {
     landmarksNear: (x, z, radius) => manager.landmarksNear(x, z, radius),
     discovered: (key) => discovered.has(key),
     fires: () => manager.firesNear(player.pose.x, player.pose.z, FIRE_RANGE),
+    collide: (x, z, radius) => manager.collide(x, z, radius),
   };
-  const npcs = createNpcManager(seed, npcWorld, {
-    brain: createRemoteBrain(localBrain),
-    onSpeak: (npc, line) => overlay.toast(npc.name + ': ' + line),
-  });
-  const npcRenderer = createNpcRenderer(renderer.scene, renderer.terrainMaterial, atlas);
-  let locked = false;
-  let spoken: string | null = null;
-
-  overlay.toast('seed ' + seedToString(seed), 6000);
-  if (sameWorld && genVersion !== GEN_VERSION) overlay.toast('this world was made by an older generator', 8000);
-  player.onFirstLock(() => {
-    locked = true;
-  });
+  const journalView = (): JournalView => {
+    const people: PersonEntry[] = [];
+    const traces: TraceEntry[] = [];
+    for (const entry of journal.values()) {
+      if (entry.type === 'person') people.push(entry);
+      else traces.push(entry);
+    }
+    people.sort((a, b) => a.at - b.at);
+    return {
+      letters: letters(),
+      places: Array.from(discovered.values()).sort((a, b) => a.at - b.at),
+      people,
+      traces,
+      startX: travel.startX,
+      startZ: travel.startZ,
+      day: travel.day,
+      walked: travel.walked,
+    };
+  };
 
   let uiHidden = false;
   let journalOpen = false;
@@ -221,7 +283,7 @@ async function boot() {
   const refreshPanels = () => {
     overlay.hidePanels();
     if (controlsOpen) overlay.showControls();
-    if (journalOpen) overlay.showJournal(letters(), discovered.size);
+    if (journalOpen) overlay.showJournal(journalView());
     if (mapOpen) {
       overlay.showMap({
         sample: mapSample,
@@ -234,7 +296,104 @@ async function boot() {
       });
     }
   };
+  const refreshJournal = (): void => {
+    if (journalOpen) refreshPanels();
+  };
+
+  const notePerson = (id: string, name: string, home: string, said: string): void => {
+    const key = PERSON + id;
+    const before = journal.get(key);
+    const entry: PersonEntry = {
+      id: key,
+      type: 'person',
+      name,
+      home,
+      said,
+      day: before ? before.day : travel.day,
+      at: Date.now(),
+    };
+    journal.set(key, entry);
+    db.putJournal(entry).catch(() => {});
+    refreshJournal();
+  };
+
+  const npcs = createNpcManager(seed, npcWorld, {
+    brain: createRemoteBrain(localBrain),
+    greetGap: GREET_GAP,
+    onSpeak: (npc, line) => {
+      const known = journal.get(PERSON + npc.id);
+      if (known && known.type === 'person') notePerson(npc.id, known.name, known.home, line);
+    },
+  });
+  const npcRenderer = createNpcRenderer(renderer.scene, renderer.terrainMaterial, atlas);
+  let locked = false;
+  let spoken: string | null = null;
+
+  const dialogueHandlers: DialogueHandlers = {
+    send: (text) => talk.say(text),
+    close: () => talk.close(),
+  };
+  const showTalk = (conversation: ConversationView | null): void => {
+    if (!conversation) {
+      overlay.hideDialogue();
+      return;
+    }
+    overlay.showDialogue(
+      {
+        title: conversation.name + ' · ' + conversation.home,
+        speaker: conversation.name,
+        lines: conversation.lines,
+        pending: conversation.pending,
+      },
+      dialogueHandlers,
+    );
+  };
+  const talk = createConversation(npcs, {
+    metBefore: (id) => journal.has(PERSON + id),
+    onChange: showTalk,
+    onReply: (conversation, line) => notePerson(conversation.id, conversation.name, conversation.home, line),
+  });
+
+  overlay.toast('seed ' + seedToString(seed), 6000);
+  if (sameWorld && genVersion !== GEN_VERSION) overlay.toast('this world was made by an older generator', 8000);
+  player.onFirstLock(() => {
+    locked = true;
+  });
+
   refreshPanels();
+
+  let sighted: NpcSnapshot | null = null;
+  let prompted: string | null = null;
+  const lookForSomeone = (crowd: NpcSnapshot[]): void => {
+    sighted = talk.active() === null && !journalOpen && !mapOpen ? villagerInSight(player.view, crowd) : null;
+    const text = sighted ? 'e — talk to ' + sighted.name.toLowerCase() : null;
+    if (text === prompted) return;
+    prompted = text;
+    if (text) overlay.showPrompt(text);
+    else overlay.hidePrompt();
+  };
+
+  const startTalk = (id: string): void => {
+    if (!talk.open(id)) return;
+    journalOpen = false;
+    mapOpen = false;
+    controlsOpen = false;
+    refreshPanels();
+    if (uiHidden) {
+      uiHidden = false;
+      overlay.setHidden(false);
+    }
+    prompted = null;
+    overlay.hidePrompt();
+    spoken = null;
+    overlay.hideHint();
+    releasePointer();
+    overlay.focusDialogue();
+  };
+
+  canvas.addEventListener('click', () => {
+    if (talk.active() !== null) talk.close();
+  });
 
   const startAudio = () => {
     if (audio.started) return;
@@ -244,7 +403,31 @@ async function boot() {
   window.addEventListener('keydown', startAudio);
 
   window.addEventListener('keydown', (ev) => {
-    switch (keyCode(ev)) {
+    if (typingInto(ev.target)) return;
+    const code = keyCode(ev);
+    if (talk.active() !== null) {
+      if (code === 'Escape') {
+        ev.preventDefault();
+        talk.close();
+      } else if (code === 'KeyE') {
+        ev.preventDefault();
+        talk.say('');
+      } else if (code === 'Enter' || code === 'NumpadEnter') {
+        ev.preventDefault();
+        overlay.focusDialogue();
+      } else if (ev.key.length === 1 && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
+        overlay.focusDialogue();
+      }
+      return;
+    }
+    switch (code) {
+      case 'KeyE': {
+        const someone = sighted;
+        if (!someone) return;
+        ev.preventDefault();
+        startTalk(someone.id);
+        break;
+      }
       case 'KeyM':
         mapOpen = !mapOpen;
         journalOpen = false;
@@ -307,6 +490,7 @@ async function boot() {
 
   const persist = () => {
     savePose({ x: player.pose.x, z: player.pose.z, yaw: player.pose.yaw, pitch: player.pose.pitch, timeOfDay });
+    saveTravel(seed, travel);
   };
   window.addEventListener('pagehide', persist);
   document.addEventListener('visibilitychange', () => { if (document.hidden) persist(); });
@@ -319,6 +503,25 @@ async function boot() {
   let waterTimer = 0;
   let nearWater = 0;
   let panelTimer = 0;
+  let traceTimer = 0;
+  let lastX = player.pose.x;
+  let lastZ = player.pose.z;
+
+  const noticeTraces = (): void => {
+    const hits = manager.propsNear(player.pose.x, player.pose.z, TRACE_RANGE);
+    for (let i = 0; i < hits.length; i++) {
+      const hit = hits[i];
+      if (!isTraceKind(hit.kind)) continue;
+      const key = traceKey(hit.kind, hit.x, hit.z);
+      if (journal.has(key)) continue;
+      const entry: TraceEntry = { id: key, type: 'trace', kind: hit.kind, x: hit.x, z: hit.z, day: travel.day, at: Date.now() };
+      journal.set(key, entry);
+      db.putJournal(entry).catch(() => {});
+      const name = traceName(hit.kind);
+      if (name) overlay.toast(name, 3500);
+      refreshJournal();
+    }
+  };
 
   const probeWater = (): number => {
     const { x, z } = player.pose;
@@ -338,15 +541,31 @@ async function boot() {
   const step = (now: number) => {
     const dt = Math.min(0.1, Math.max(0.001, (now - last) / 1000));
     last = now;
-    if (player.drifting) drift.update(dt);
-    player.update(dt);
+    const talking = talk.active() !== null;
+    if (!talking) {
+      if (player.drifting) drift.update(dt);
+      player.update(dt);
+    }
+    const stride = Math.hypot(player.pose.x - lastX, player.pose.z - lastZ);
+    if (stride < STRIDE_LIMIT) travel.walked += stride;
+    lastX = player.pose.x;
+    lastZ = player.pose.z;
     manager.update(player.pose.x, player.pose.z);
+    const before = timeOfDay;
     timeOfDay = (timeOfDay + dt / DAY_LENGTH_S) % 1;
+    if (before < DAWN && timeOfDay >= DAWN) {
+      travel.day += 1;
+      saveTravel(seed, travel);
+      refreshJournal();
+    }
 
     npcs.update(dt);
     const crowd = npcs.snapshots();
+    people = crowd;
     npcRenderer.update(crowd);
-    if (locked) {
+    if (talking) talk.check(player.pose.x, player.pose.z);
+    lookForSomeone(crowd);
+    if (locked && talk.active() === null) {
       let line: string | null = null;
       for (let i = 0; i < crowd.length; i++) {
         const npc = crowd[i];
@@ -354,7 +573,7 @@ async function boot() {
         const dx = npc.x - player.pose.x;
         const dz = npc.z - player.pose.z;
         if (dx * dx + dz * dz > SPEAK_RANGE * SPEAK_RANGE) continue;
-        line = npc.name + ': ' + npc.speaking;
+        line = npc.name.toLowerCase() + ': ' + npc.speaking;
         break;
       }
       if (line !== null) {
@@ -387,22 +606,30 @@ async function boot() {
       biome: biome === MATERIAL.NONE ? MATERIAL.GRASS : biome,
       nearWater,
       altitude: Math.max(0, player.groundHeight),
-      speed: player.speed,
+      speed: talking ? 0 : player.speed,
       timeOfDay,
     });
 
     for (const lm of manager.landmarksNear(player.pose.x, player.pose.z, 9)) {
       if (discovered.has(lm.regionKey)) continue;
-      const d: Discovery = { id: lm.regionKey, kind: lm.kind, letter: lm.letter, x: lm.x, z: lm.z, at: Date.now() };
+      const d: Discovery = {
+        id: lm.regionKey, kind: lm.kind, letter: lm.letter, x: lm.x, z: lm.z, at: Date.now(), day: travel.day,
+      };
       discovered.set(d.id, d);
       view.lettersFound = letters();
       db.addDiscovery(d).catch(() => {});
       audio.discover();
-      if (lm.letter) overlay.toast(lm.letter, 5000);
-      if (journalOpen) refreshPanels();
+      overlay.toast(lm.letter ? lm.letter : placeName(lm.kind, null), 5000);
+      refreshJournal();
     }
 
-    if (mapOpen) {
+    traceTimer += dt;
+    if (traceTimer > TRACE_POLL) {
+      traceTimer = 0;
+      noticeTraces();
+    }
+
+    if (mapOpen || journalOpen) {
       panelTimer += dt;
       if (panelTimer > 1) {
         panelTimer = 0;
@@ -420,7 +647,7 @@ async function boot() {
     step(now);
     requestAnimationFrame(frame);
   };
-  (window as unknown as { tilde: unknown }).tilde = { renderer, manager, player, sampler, npcs, step };
+  (window as unknown as { tilde: unknown }).tilde = { renderer, manager, player, sampler, npcs, talk, step };
   requestAnimationFrame(frame);
 }
 

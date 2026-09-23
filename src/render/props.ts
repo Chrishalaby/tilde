@@ -4,6 +4,7 @@ import {
   BufferGeometry,
   CircleGeometry,
   ConeGeometry,
+  CylinderGeometry,
   IcosahedronGeometry,
   InstancedMesh,
   Matrix4,
@@ -13,7 +14,41 @@ import {
 } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { CHUNK_SIZE, CHUNK_VERTS, MATERIAL, PROP, VERTEX_SPACING } from '../config';
-import { hash01, mix32 } from '../world/hash';
+import { mix32 } from '../world/hash';
+import {
+  BROADLEAF,
+  CAIRN_RADIUS,
+  CONE_SEGMENTS,
+  DISC_SEGMENTS,
+  DOOR_POST_D,
+  DOOR_POST_W,
+  DOOR_POST_X,
+  FALLEN_LENGTH,
+  FALLEN_WIDTH,
+  KEEL_BEND,
+  KEEL_DEPTH,
+  KEEL_LENGTH,
+  KEEL_WIDTH,
+  PINE,
+  STUMP_H,
+  TOWER_SEGMENTS,
+  WRECK_ARC,
+  WRECK_KEEL,
+  WRECK_RIBS,
+  WRECK_RISE,
+  WRECK_ROLL,
+  cairnStones,
+  doorYaw,
+  fallenYaw,
+  landmarkLayout,
+  steppingStones,
+  stumpsOf,
+  traceHash,
+  treeVariant,
+  wreckLean,
+  wreckYaw,
+} from '../world/structures';
+import type { Ground, Part, PartShape, TreeVariant } from '../world/structures';
 import type { ChunkData } from '../world/types';
 import type { GlyphAtlas } from './glyph-atlas';
 
@@ -25,96 +60,113 @@ function tagMaterial<T extends BufferGeometry>(geometry: T, material: number): T
   return geometry;
 }
 
-function buildPine(): BufferGeometry {
-  const trunk = new BoxGeometry(0.45, 1.6, 0.45);
-  trunk.translate(0, 0.8, 0);
-  tagMaterial(trunk, MATERIAL.TRUNK);
-  const lower = new ConeGeometry(1.15, 3.0, 6, 1, true);
-  lower.translate(0, 2.8, 0);
-  tagMaterial(lower, MATERIAL.TREE);
-  const upper = new ConeGeometry(0.8, 4.4, 6, 1, true);
-  upper.translate(0, 5.6, 0);
-  tagMaterial(upper, MATERIAL.TREE);
-  const merged = mergeGeometries([trunk, lower, upper], false) as BufferGeometry | null;
-  trunk.dispose();
-  lower.dispose();
-  upper.dispose();
-  if (merged === null) throw new Error('pine geometry could not be merged');
-  merged.computeBoundingSphere();
-  return merged;
+function merged(parts: BufferGeometry[], name: string): BufferGeometry {
+  const out = mergeGeometries(parts, false) as BufferGeometry | null;
+  for (const part of parts) part.dispose();
+  if (out === null) throw new Error(name + ' geometry could not be merged');
+  out.computeBoundingSphere();
+  return out;
 }
 
-const PINE = buildPine();
+function buildPine(): BufferGeometry {
+  const trunkHeight = PINE.trunkTop - PINE.trunkBottom;
+  const trunk = new BoxGeometry(PINE.trunkWidth, trunkHeight, PINE.trunkWidth);
+  trunk.translate(0, PINE.trunkBottom + trunkHeight / 2, 0);
+  tagMaterial(trunk, MATERIAL.TRUNK);
+  const lower = new ConeGeometry(PINE.lowerRadius, PINE.lowerHeight, PINE.segments, 1, false);
+  lower.translate(0, PINE.lowerBase + PINE.lowerHeight / 2, 0);
+  tagMaterial(lower, MATERIAL.TREE);
+  const upper = new ConeGeometry(PINE.upperRadius, PINE.upperHeight, PINE.segments, 1, true);
+  upper.translate(0, PINE.upperBase + PINE.upperHeight / 2, 0);
+  tagMaterial(upper, MATERIAL.TREE);
+  return merged([trunk, lower, upper], 'pine');
+}
 
+function buildBroadleaf(): BufferGeometry {
+  const trunkHeight = BROADLEAF.trunkTop - BROADLEAF.trunkBottom;
+  const box = new BoxGeometry(BROADLEAF.trunkWidth, trunkHeight, BROADLEAF.trunkWidth);
+  const trunk = box.toNonIndexed();
+  box.dispose();
+  trunk.translate(0, BROADLEAF.trunkBottom + trunkHeight / 2, 0);
+  tagMaterial(trunk, MATERIAL.TRUNK);
+  const crown = BROADLEAF.crown.map((blob) => {
+    const geometry = new IcosahedronGeometry(1, 0);
+    geometry.scale(blob.radius, blob.rise, blob.radius);
+    geometry.translate(blob.x, blob.y, blob.z);
+    return tagMaterial(geometry, MATERIAL.TREE);
+  });
+  return merged([trunk, ...crown], 'broadleaf');
+}
+
+function buildGable(): BufferGeometry {
+  const ridgeL = [-0.5, 0.5, 0];
+  const ridgeR = [0.5, 0.5, 0];
+  const frontL = [-0.5, -0.5, 0.5];
+  const frontR = [0.5, -0.5, 0.5];
+  const backL = [-0.5, -0.5, -0.5];
+  const backR = [0.5, -0.5, -0.5];
+  const triangles = [
+    frontL, frontR, ridgeR, frontL, ridgeR, ridgeL,
+    backR, backL, ridgeL, backR, ridgeL, ridgeR,
+    frontR, backR, ridgeR,
+    backL, frontL, ridgeL,
+    backL, backR, frontR, backL, frontR, frontL,
+  ];
+  const positions = new Float32Array(triangles.length * 3);
+  triangles.forEach((vertex, i) => positions.set(vertex, i * 3));
+  const geometry = new BufferGeometry();
+  geometry.setAttribute('position', new BufferAttribute(positions, 3));
+  return geometry;
+}
+
+function unitShape(shape: PartShape): BufferGeometry {
+  switch (shape) {
+    case 'cylinder':
+      return new CylinderGeometry(0.5, 0.5, 1, TOWER_SEGMENTS);
+    case 'cone':
+      return new ConeGeometry(0.5, 1, CONE_SEGMENTS);
+    case 'gable':
+      return buildGable();
+    case 'disc': {
+      const disc = new CircleGeometry(0.5, DISC_SEGMENTS);
+      disc.rotateX(-Math.PI / 2);
+      return disc;
+    }
+    default:
+      return new BoxGeometry(1, 1, 1);
+  }
+}
+
+const UNITS = new Map<string, BufferGeometry>();
+
+function unitGeometry(shape: PartShape, material: number): BufferGeometry {
+  const key = shape + ':' + material;
+  let geometry = UNITS.get(key);
+  if (geometry === undefined) {
+    geometry = tagMaterial(unitShape(shape), material);
+    geometry.computeBoundingSphere();
+    UNITS.set(key, geometry);
+  }
+  return geometry;
+}
+
+const PINE_GEOMETRY = buildPine();
+const BROADLEAF_GEOMETRY = buildBroadleaf();
 const ROCK = tagMaterial(new IcosahedronGeometry(1, 0), MATERIAL.STONE);
-const STONE_BOX = tagMaterial(new BoxGeometry(1, 1, 1), MATERIAL.STONE);
 const LETTER_BOX = tagMaterial(new BoxGeometry(1, 1, 1), MATERIAL.LETTER);
-
 const TRUNK_BOX = tagMaterial(new BoxGeometry(1, 1, 1), MATERIAL.TRUNK);
 
-const FIRE_BOX = tagMaterial(new BoxGeometry(1, 1, 1), MATERIAL.FIRE);
-
 const TAU = Math.PI * 2;
-const WRECK_KEEL = 5;
-const WRECK_RIBS = 7;
-const WRECK_ARC = 3.6;
-const WRECK_RISE = 0.6;
 const FIRE_RING = 8;
 const FIRE_STUBS = 3;
 const DOOR_PARTS = 3;
-const CAIRN_BASE = 4;
-const CAIRN_RADIUS = 0.3;
+const DOOR_POST_Y = 0.95;
+const DOOR_POST_H = 2.5;
+const DOOR_LINTEL_Y = 2.31;
+const DOOR_LINTEL = [1.6, 0.22, 0.3] as const;
 const CAIRN_TAPER = 0.045;
 const CAIRN_PACK = 0.92;
-const STEP_BASE = 5;
 const STEP_GAP = 1.2;
-const STUMP_BASE = 6;
-const STUMP_SPAN = 5;
-const STUMP_NEAR = 1.2;
-const STUMP_FAR = 3.6;
-const STUMP_H = 0.5;
-
-function traceHash(x: number, z: number, salt: number, k = 0): number {
-  return hash01(Math.round(x), Math.round(z), salt, k);
-}
-
-function cairnStones(x: number, z: number): number {
-  return CAIRN_BASE + (traceHash(x, z, 41) < 0.5 ? 0 : 1);
-}
-
-function steppingStones(x: number, z: number): number {
-  return STEP_BASE + (traceHash(x, z, 42) < 0.5 ? 0 : 1);
-}
-
-function stumpCount(x: number, z: number): number {
-  return STUMP_BASE + Math.floor(traceHash(x, z, 43) * STUMP_SPAN);
-}
-
-const CASTLE_HALF = 11;
-const CASTLE_WALL_H = 4;
-const CASTLE_WALL_T = 1.2;
-const CASTLE_GATE = 4;
-const CASTLE_SINK = 1;
-const CASTLE_SEGMENT = CASTLE_HALF - CASTLE_GATE / 2;
-const TOWER_SIZE = 4;
-const TOWER_H = 9;
-const KEEP_SIZE = 8;
-const KEEP_H = 12;
-const KEEP_OFFSET = 5;
-const TORCH_W = 0.3;
-const TORCH_H = 0.5;
-const POST_H = 1.2;
-const POST_T = 0.18;
-const GATE_TORCH_H = 2.5;
-const CASTLE_STONES = 16;
-const CASTLE_TORCHES = 6;
-const PIT_W = 0.6;
-const PIT_H = 0.3;
-const PIT_OFFSET = 2.4;
-
-const POOL_DISC = new CircleGeometry(2.5, 20);
-POOL_DISC.rotateX(-Math.PI / 2);
-tagMaterial(POOL_DISC, MATERIAL.WATER);
 
 function heightAt(data: ChunkData, x: number, z: number): number {
   const n = CHUNK_VERTS;
@@ -131,27 +183,6 @@ function heightAt(data: ChunkData, x: number, z: number): number {
   return top + (bottom - top) * tz;
 }
 
-function sunkBlock(
-  data: ChunkData,
-  dummy: Object3D,
-  mesh: InstancedMesh,
-  at: number,
-  x: number,
-  z: number,
-  sx: number,
-  sz: number,
-  base: number,
-  rise: number,
-): void {
-  const floor = Math.min(base, heightAt(data, x, z)) - CASTLE_SINK;
-  const height = Math.max(0.5, base + rise - floor);
-  dummy.position.set(x, floor + height / 2, z);
-  dummy.rotation.set(0, 0, 0);
-  dummy.scale.set(sx, height, sz);
-  dummy.updateMatrix();
-  mesh.setMatrixAt(at, dummy.matrix);
-}
-
 function shareUniforms(base: ShaderMaterial, overrides: Record<string, number>): ShaderMaterial {
   const clone = base.clone();
   const uniforms: Record<string, { value: unknown }> = { ...base.uniforms };
@@ -160,15 +191,21 @@ function shareUniforms(base: ShaderMaterial, overrides: Record<string, number>):
   return clone;
 }
 
-export function buildProps(data: ChunkData, material: ShaderMaterial, atlas: GlyphAtlas): Object3D {
+export function buildProps(
+  data: ChunkData,
+  material: ShaderMaterial,
+  atlas: GlyphAtlas,
+  ground?: Ground,
+): Object3D {
   const group = new Object3D();
-  const geometries: BufferGeometry[] = [];
   const clones: ShaderMaterial[] = [];
   const instanced: InstancedMesh[] = [];
-  const fires: Array<{ x: number; y: number; z: number }> = [];
+  const fires: Array<{ x: number; y: number; z: number; hearth: boolean }> = [];
 
   const props = data.props;
-  let treeCount = 0;
+  const variants: TreeVariant[] = [];
+  let pineCount = 0;
+  let broadleafCount = 0;
   let rockCount = 0;
   let trunkCount = 0;
   let stoneCount = 0;
@@ -176,12 +213,16 @@ export function buildProps(data: ChunkData, material: ShaderMaterial, atlas: Gly
     const x = props[i];
     const z = props[i + 1];
     const kind = props[i + 2];
-    if (kind === PROP.TREE) treeCount++;
-    else if (kind === PROP.ROCK) rockCount++;
+    if (kind === PROP.TREE) {
+      const variant = treeVariant(x, z);
+      variants.push(variant);
+      if (variant.broadleaf) broadleafCount++;
+      else pineCount++;
+    } else if (kind === PROP.ROCK) rockCount++;
     else if (kind === PROP.WRECK) trunkCount += WRECK_KEEL + WRECK_RIBS;
     else if (kind === PROP.CAIRN) stoneCount += cairnStones(x, z);
     else if (kind === PROP.STEPPING) stoneCount += steppingStones(x, z);
-    else if (kind === PROP.STUMPS) trunkCount += stumpCount(x, z);
+    else if (kind === PROP.STUMPS) trunkCount += stumpsOf(x, z, props[i + 3]).length;
     else if (kind === PROP.DOOR) trunkCount += DOOR_PARTS;
     else if (kind === PROP.COLD_FIRE) {
       stoneCount += FIRE_RING;
@@ -200,25 +241,15 @@ export function buildProps(data: ChunkData, material: ShaderMaterial, atlas: Gly
     mesh.setMatrixAt(at, world);
   };
 
-  let pines: InstancedMesh | null = null;
-  let rocks: InstancedMesh | null = null;
-  let trunks: InstancedMesh | null = null;
-  let stones: InstancedMesh | null = null;
-
-  if (treeCount > 0) {
-    pines = new InstancedMesh(PINE, material, treeCount);
-  }
-  if (rockCount > 0) {
-    rocks = new InstancedMesh(ROCK, material, rockCount);
-  }
-  if (trunkCount > 0) {
-    trunks = new InstancedMesh(TRUNK_BOX, material, trunkCount);
-  }
-  if (stoneCount > 0) {
-    stones = new InstancedMesh(ROCK, material, stoneCount);
-  }
+  const pines = pineCount > 0 ? new InstancedMesh(PINE_GEOMETRY, material, pineCount) : null;
+  const broadleaves = broadleafCount > 0 ? new InstancedMesh(BROADLEAF_GEOMETRY, material, broadleafCount) : null;
+  const rocks = rockCount > 0 ? new InstancedMesh(ROCK, material, rockCount) : null;
+  const trunks = trunkCount > 0 ? new InstancedMesh(TRUNK_BOX, material, trunkCount) : null;
+  const stones = stoneCount > 0 ? new InstancedMesh(ROCK, material, stoneCount) : null;
 
   let treeAt = 0;
+  let pineAt = 0;
+  let broadleafAt = 0;
   let rockAt = 0;
   let trunkAt = 0;
   let stoneAt = 0;
@@ -230,13 +261,22 @@ export function buildProps(data: ChunkData, material: ShaderMaterial, atlas: Gly
     const y = heightAt(data, x, z);
 
     if (kind === PROP.TREE) {
-      if (pines === null) continue;
-      dummy.position.set(x, y, z);
-      dummy.rotation.set(0, (x * 0.7 + z * 1.3) % TAU, 0);
-      dummy.scale.setScalar(scale);
-      dummy.updateMatrix();
-      pines.setMatrixAt(treeAt, dummy.matrix);
+      const variant = variants[treeAt];
       treeAt++;
+      const target = variant.broadleaf ? broadleaves : pines;
+      if (target === null) continue;
+      const width = scale * variant.width;
+      dummy.position.set(x, y, z);
+      dummy.rotation.set(0, variant.yaw, 0);
+      dummy.scale.set(width, scale * variant.height, width);
+      dummy.updateMatrix();
+      if (variant.broadleaf) {
+        target.setMatrixAt(broadleafAt, dummy.matrix);
+        broadleafAt++;
+      } else {
+        target.setMatrixAt(pineAt, dummy.matrix);
+        pineAt++;
+      }
     } else if (kind === PROP.ROCK) {
       if (rocks === null) continue;
       dummy.position.set(x, y, z);
@@ -247,16 +287,16 @@ export function buildProps(data: ChunkData, material: ShaderMaterial, atlas: Gly
       rockAt++;
     } else if (kind === PROP.WRECK) {
       if (trunks === null) continue;
-      const lean = (traceHash(x, z, 52) - 0.5) * 0.4;
+      const lean = wreckLean(x, z);
       frame.position.set(x, y - 0.55 * scale, z);
-      frame.rotation.set(lean * 0.7, traceHash(x, z, 51) * TAU, 0.18 + lean);
+      frame.rotation.set(lean * 0.7, wreckYaw(x, z), WRECK_ROLL + lean);
       frame.scale.setScalar(scale);
       frame.updateMatrix();
       for (let k = 0; k < WRECK_KEEL; k++) {
         const t = (2 * k) / (WRECK_KEEL - 1) - 1;
         part.position.set(t * WRECK_ARC, 0.3 + WRECK_RISE * t * t, 0);
-        part.rotation.set(0, 0, t * 0.5);
-        part.scale.set(2, 0.34, 0.5);
+        part.rotation.set(0, 0, t * KEEL_BEND);
+        part.scale.set(KEEL_LENGTH, KEEL_DEPTH, KEEL_WIDTH);
         emit(trunks, trunkAt);
         trunkAt++;
       }
@@ -329,7 +369,7 @@ export function buildProps(data: ChunkData, material: ShaderMaterial, atlas: Gly
       clones.push(letterMaterial);
       const pivot = new Object3D();
       pivot.position.set(x, y, z);
-      pivot.rotation.set(0, traceHash(x, z, 62) * TAU, 0);
+      pivot.rotation.set(0, fallenYaw(x, z), 0);
       pivot.scale.setScalar(scale);
       const slab = new Mesh(LETTER_BOX, letterMaterial);
       slab.position.set(0, 0.5, 0);
@@ -338,7 +378,7 @@ export function buildProps(data: ChunkData, material: ShaderMaterial, atlas: Gly
         0,
         -Math.PI / 2 + (traceHash(x, z, 64) - 0.5) * 0.22,
       );
-      slab.scale.set(2, 9, 2);
+      slab.scale.set(FALLEN_WIDTH, FALLEN_LENGTH, FALLEN_WIDTH);
       pivot.add(slab);
       group.add(pivot);
     } else if (kind === PROP.STEPPING) {
@@ -362,34 +402,28 @@ export function buildProps(data: ChunkData, material: ShaderMaterial, atlas: Gly
     } else if (kind === PROP.DOOR) {
       if (trunks === null) continue;
       frame.position.set(x, y, z);
-      frame.rotation.set(0, traceHash(x, z, 68) * TAU, (traceHash(x, z, 69) - 0.5) * 0.12);
+      frame.rotation.set(0, doorYaw(x, z), (traceHash(x, z, 69) - 0.5) * 0.12);
       frame.scale.setScalar(scale);
       frame.updateMatrix();
-      for (let k = 0; k < 2; k++) {
-        part.position.set(k === 0 ? -0.62 : 0.62, 0.95, 0);
+      for (const side of [-1, 1]) {
+        part.position.set(side * DOOR_POST_X, DOOR_POST_Y, 0);
         part.rotation.set(0, 0, 0);
-        part.scale.set(0.22, 2.5, 0.24);
+        part.scale.set(DOOR_POST_W, DOOR_POST_H, DOOR_POST_D);
         emit(trunks, trunkAt);
         trunkAt++;
       }
-      part.position.set(0, 2.31, 0);
+      part.position.set(0, DOOR_LINTEL_Y, 0);
       part.rotation.set(0, 0, 0);
-      part.scale.set(1.6, 0.22, 0.3);
+      part.scale.set(DOOR_LINTEL[0], DOOR_LINTEL[1], DOOR_LINTEL[2]);
       emit(trunks, trunkAt);
       trunkAt++;
     } else if (kind === PROP.STUMPS) {
       if (trunks === null) continue;
-      const n = stumpCount(x, z);
       const tall = STUMP_H * scale;
-      for (let k = 0; k < n; k++) {
-        const a = (k / n) * TAU + (traceHash(x, z, 70, k) - 0.5) * 0.9;
-        const r = (STUMP_NEAR + traceHash(x, z, 71, k) * STUMP_FAR) * scale;
-        const sx = x + Math.cos(a) * r;
-        const sz = z + Math.sin(a) * r;
-        const w = 0.4 + traceHash(x, z, 72, k) * 0.22;
-        dummy.position.set(sx, heightAt(data, sx, sz) + tall * 0.4, sz);
-        dummy.rotation.set(0, traceHash(x, z, 73, k) * TAU, 0);
-        dummy.scale.set(w * scale, tall, w * scale);
+      for (const stump of stumpsOf(x, z, scale)) {
+        dummy.position.set(stump.x, heightAt(data, stump.x, stump.z) + tall * 0.4, stump.z);
+        dummy.rotation.set(0, stump.yaw, 0);
+        dummy.scale.set(stump.width, tall, stump.width);
         dummy.updateMatrix();
         trunks.setMatrixAt(trunkAt, dummy.matrix);
         trunkAt++;
@@ -397,7 +431,20 @@ export function buildProps(data: ChunkData, material: ShaderMaterial, atlas: Gly
     }
   }
 
-  for (const mesh of [pines, rocks, trunks, stones]) {
+  let trees: Object3D | null = null;
+  for (const mesh of [pines, broadleaves]) {
+    if (mesh === null) continue;
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
+    instanced.push(mesh);
+    if (trees === null) {
+      trees = new Object3D();
+      group.add(trees);
+    }
+    trees.add(mesh);
+  }
+
+  for (const mesh of [rocks, trunks, stones]) {
     if (mesh === null) continue;
     mesh.instanceMatrix.needsUpdate = true;
     mesh.computeBoundingSphere();
@@ -407,134 +454,53 @@ export function buildProps(data: ChunkData, material: ShaderMaterial, atlas: Gly
 
   const landmark = data.landmark;
   if (landmark !== null) {
-    if (landmark.kind === 'letter') {
-      const glyph = landmark.letter === null ? -1 : atlas.index.get(landmark.letter) ?? -1;
-      const letterMaterial = shareUniforms(material, { uLetterIndex: glyph });
-      clones.push(letterMaterial);
-      const monolith = new Mesh(LETTER_BOX, letterMaterial);
-      monolith.scale.set(2, 9, 2);
-      monolith.position.set(landmark.x, landmark.y + 4.5, landmark.z);
-      group.add(monolith);
-    } else if (landmark.kind === 'castle') {
-      const mx = landmark.x;
-      const mz = landmark.z;
-      const base = landmark.y;
-      const stones = new InstancedMesh(STONE_BOX, material, CASTLE_STONES);
-      const torches = new InstancedMesh(FIRE_BOX, material, CASTLE_TORCHES);
-      let at = 0;
-      const wall = (x: number, z: number, sx: number, sz: number): void => {
-        sunkBlock(data, dummy, stones, at, x, z, sx, sz, base, CASTLE_WALL_H);
-        at++;
-      };
-      const span = CASTLE_HALF * 2;
-      wall(mx, mz - CASTLE_HALF, span, CASTLE_WALL_T);
-      wall(mx - CASTLE_HALF, mz, CASTLE_WALL_T, span);
-      wall(mx + CASTLE_HALF, mz, CASTLE_WALL_T, span);
-      const gateSide = CASTLE_GATE / 2 + CASTLE_SEGMENT / 2;
-      wall(mx - gateSide, mz + CASTLE_HALF, CASTLE_SEGMENT, CASTLE_WALL_T);
-      wall(mx + gateSide, mz + CASTLE_HALF, CASTLE_SEGMENT, CASTLE_WALL_T);
-      sunkBlock(data, dummy, stones, at, mx, mz - KEEP_OFFSET, KEEP_SIZE, KEEP_SIZE, base, KEEP_H);
-      at++;
-
-      let lit = 0;
-      const torch = (x: number, y: number, z: number): void => {
-        dummy.position.set(x, y, z);
-        dummy.rotation.set(0, 0, 0);
-        dummy.scale.set(TORCH_W, TORCH_H, TORCH_W);
-        dummy.updateMatrix();
-        torches.setMatrixAt(lit, dummy.matrix);
-        lit++;
-        dummy.position.set(x, y - TORCH_H / 2 - POST_H / 2, z);
-        dummy.scale.set(POST_T, POST_H, POST_T);
-        dummy.updateMatrix();
-        stones.setMatrixAt(at, dummy.matrix);
-        at++;
-        fires.push({ x, y, z });
-      };
-
-      for (let k = 0; k < 4; k++) {
-        const sx = k === 0 || k === 3 ? -1 : 1;
-        const sz = k < 2 ? -1 : 1;
-        const tx = mx + sx * CASTLE_HALF;
-        const tz = mz + sz * CASTLE_HALF;
-        sunkBlock(data, dummy, stones, at, tx, tz, TOWER_SIZE, TOWER_SIZE, base, TOWER_H);
-        at++;
-        torch(tx, base + TOWER_H + POST_H + TORCH_H / 2, tz);
-      }
-      const gateZ = mz + CASTLE_HALF + CASTLE_WALL_T / 2 + TORCH_W;
-      torch(mx - CASTLE_GATE / 2 - TORCH_W, base + GATE_TORCH_H, gateZ);
-      torch(mx + CASTLE_GATE / 2 + TORCH_W, base + GATE_TORCH_H, gateZ);
-
-      for (const mesh of [stones, torches]) {
-        mesh.instanceMatrix.needsUpdate = true;
-        mesh.computeBoundingSphere();
-        instanced.push(mesh);
-        group.add(mesh);
-      }
-    } else if (landmark.kind === 'ring') {
-      const ring = new InstancedMesh(STONE_BOX, material, 8);
-      for (let k = 0; k < 8; k++) {
-        const angle = (k / 8) * Math.PI * 2;
-        const x = landmark.x + Math.cos(angle) * 6;
-        const z = landmark.z + Math.sin(angle) * 6;
-        dummy.position.set(x, heightAt(data, x, z) + 1.1, z);
-        dummy.rotation.set(0, -angle, 0);
-        dummy.scale.set(0.9, 2.2, 0.9);
-        dummy.updateMatrix();
-        ring.setMatrixAt(k, dummy.matrix);
-      }
-      ring.instanceMatrix.needsUpdate = true;
-      ring.computeBoundingSphere();
-      instanced.push(ring);
-      group.add(ring);
-    } else if (landmark.kind === 'tree') {
-      const pine = new Mesh(PINE, material);
-      pine.scale.setScalar(3);
-      pine.position.set(landmark.x, landmark.y, landmark.z);
-      group.add(pine);
-    } else if (landmark.kind === 'pool') {
-      const poolMaterial = shareUniforms(material, { uIsWater: 1 });
-      clones.push(poolMaterial);
-      const pool = new Mesh(POOL_DISC, poolMaterial);
-      pool.position.set(landmark.x, landmark.y + 0.06, landmark.z);
-      group.add(pool);
-    } else {
-      const shelter = new InstancedMesh(STONE_BOX, material, 3);
-      const base = landmark.y;
-      dummy.position.set(landmark.x - 1.6, base + 1.1, landmark.z);
-      dummy.rotation.set(0, 0, 0);
-      dummy.scale.set(0.5, 2.2, 2.6);
-      dummy.updateMatrix();
-      shelter.setMatrixAt(0, dummy.matrix);
-      dummy.position.set(landmark.x + 1.6, base + 0.6, landmark.z);
-      dummy.scale.set(0.5, 1.2, 2.6);
-      dummy.updateMatrix();
-      shelter.setMatrixAt(1, dummy.matrix);
-      dummy.position.set(landmark.x, base + 1.9, landmark.z);
-      dummy.rotation.set(0, 0, 0.3);
-      dummy.scale.set(3.8, 0.35, 2.8);
-      dummy.updateMatrix();
-      shelter.setMatrixAt(2, dummy.matrix);
-      shelter.instanceMatrix.needsUpdate = true;
-      shelter.computeBoundingSphere();
-      instanced.push(shelter);
-      group.add(shelter);
-
-      const pitX = landmark.x;
-      const pitZ = landmark.z + PIT_OFFSET;
-      const pitY = heightAt(data, pitX, pitZ) + PIT_H / 2;
-      const pit = new Mesh(FIRE_BOX, material);
-      pit.scale.set(PIT_W, PIT_H, PIT_W);
-      pit.position.set(pitX, pitY, pitZ);
-      group.add(pit);
-      fires.push({ x: pitX, y: pitY, z: pitZ });
+    const layout = landmarkLayout(landmark, ground ?? ((x, z) => heightAt(data, x, z)));
+    const buckets = new Map<string, Part[]>();
+    for (const piece of layout.parts) {
+      const key = piece.shape + ':' + piece.material;
+      const bucket = buckets.get(key);
+      if (bucket === undefined) buckets.set(key, [piece]);
+      else bucket.push(piece);
     }
+    let letterMaterial: ShaderMaterial | null = null;
+    let waterMaterial: ShaderMaterial | null = null;
+    for (const bucket of buckets.values()) {
+      const first = bucket[0];
+      let surface = material;
+      if (first.material === MATERIAL.LETTER) {
+        if (letterMaterial === null) {
+          const glyph = landmark.letter === null ? -1 : atlas.index.get(landmark.letter) ?? -1;
+          letterMaterial = shareUniforms(material, { uLetterIndex: glyph });
+          clones.push(letterMaterial);
+        }
+        surface = letterMaterial;
+      } else if (first.material === MATERIAL.WATER) {
+        if (waterMaterial === null) {
+          waterMaterial = shareUniforms(material, { uIsWater: 1 });
+          clones.push(waterMaterial);
+        }
+        surface = waterMaterial;
+      }
+      const mesh = new InstancedMesh(unitGeometry(first.shape, first.material), surface, bucket.length);
+      for (let k = 0; k < bucket.length; k++) {
+        const piece = bucket[k];
+        dummy.position.set(piece.x, piece.y, piece.z);
+        dummy.rotation.set(0, piece.yaw, piece.tilt);
+        dummy.scale.set(piece.sx, piece.shape === 'disc' ? 1 : piece.sy, piece.sz);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(k, dummy.matrix);
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.computeBoundingSphere();
+      instanced.push(mesh);
+      group.add(mesh);
+    }
+    for (const fire of layout.fires) fires.push({ x: fire.x, y: fire.y, z: fire.z, hearth: fire.hearth });
   }
 
-  group.userData.pines = pines;
+  group.userData.pines = trees;
   group.userData.fires = fires;
   group.userData.dispose = (): void => {
-    for (const geometry of geometries) geometry.dispose();
     for (const clone of clones) clone.dispose();
     for (const mesh of instanced) mesh.dispose();
     group.clear();

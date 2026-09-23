@@ -20,6 +20,39 @@ const CALL_TIMEOUT = 6000;
 const MAX_LINE = 88;
 const MODEL = process.env.OPENAI_MODEL || 'gpt-5-mini';
 
+const MAX_CHAT_BODY = 8192;
+const CHAT_IP_CAPACITY = 20;
+const CHAT_GLOBAL_CAPACITY = 600;
+const CHAT_TIMEOUT = 7000;
+const MAX_REPLY = 200;
+const MAX_HISTORY = 12;
+const MAX_TEXT = 240;
+const MAX_HINT = 200;
+const NAME_PATTERN = /^[A-Za-z]{1,24}$/;
+const GLYPH_PATTERN = /^[a-z]$/;
+const KIND_PATTERN = /^[a-z]{0,12}$/;
+const LETTER_PATTERN = /^[a-z]?$/;
+const TEMPERAMENTS = new Set(['curious', 'quiet', 'wistful', 'cheerful']);
+const PHASES = new Set(['dawn', 'morning', 'noon', 'dusk', 'night']);
+const GROUNDS = new Set(['grass', 'forest', 'stone', 'sand', 'snow', 'water', 'bare']);
+const SPEAKERS = new Set(['player', 'npc']);
+const HOMES = new Map([
+  ['castle', 'by the castle'],
+  ['ring', 'by the ring of standing stones'],
+  ['shelter', 'at the low stone shelter'],
+  ['tree', 'by the lone tall tree'],
+  ['pool', 'by the still pool'],
+]);
+const GROUND_WORDS = new Map([
+  ['grass', 'grass'],
+  ['forest', 'the forest floor'],
+  ['stone', 'bare stone'],
+  ['sand', 'sand'],
+  ['snow', 'snow'],
+  ['water', 'shallow water'],
+  ['bare', 'bare ground'],
+]);
+
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -44,9 +77,6 @@ const SYSTEM_PROMPT = [
 
 const client = process.env.OPENAI_API_KEY ? new OpenAI() : null;
 
-const buckets = new Map();
-const globalBucket = { tokens: GLOBAL_CAPACITY, stamp: Date.now() };
-
 function takeToken(bucket, capacity, window, now) {
   bucket.tokens = Math.min(capacity, bucket.tokens + ((now - bucket.stamp) / window) * capacity);
   bucket.stamp = now;
@@ -55,24 +85,30 @@ function takeToken(bucket, capacity, window, now) {
   return true;
 }
 
-function sweep(now) {
-  if (buckets.size < 2048) return;
-  for (const [key, bucket] of buckets) {
-    if (now - bucket.stamp > IP_WINDOW) buckets.delete(key);
-  }
+function createLimiter(ipCapacity, ipWindow, globalCapacity, globalWindow) {
+  const buckets = new Map();
+  const globalBucket = { tokens: globalCapacity, stamp: Date.now() };
+  const sweep = (now) => {
+    if (buckets.size < 2048) return;
+    for (const [key, bucket] of buckets) {
+      if (now - bucket.stamp > ipWindow) buckets.delete(key);
+    }
+  };
+  return (ip) => {
+    const now = Date.now();
+    sweep(now);
+    let bucket = buckets.get(ip);
+    if (!bucket) {
+      bucket = { tokens: ipCapacity, stamp: now };
+      buckets.set(ip, bucket);
+    }
+    if (!takeToken(bucket, ipCapacity, ipWindow, now)) return false;
+    return takeToken(globalBucket, globalCapacity, globalWindow, now);
+  };
 }
 
-function allow(ip) {
-  const now = Date.now();
-  sweep(now);
-  let bucket = buckets.get(ip);
-  if (!bucket) {
-    bucket = { tokens: IP_CAPACITY, stamp: now };
-    buckets.set(ip, bucket);
-  }
-  if (!takeToken(bucket, IP_CAPACITY, IP_WINDOW, now)) return false;
-  return takeToken(globalBucket, GLOBAL_CAPACITY, GLOBAL_WINDOW, now);
-}
+const allow = createLimiter(IP_CAPACITY, IP_WINDOW, GLOBAL_CAPACITY, GLOBAL_WINDOW);
+const allowChat = createLimiter(CHAT_IP_CAPACITY, IP_WINDOW, CHAT_GLOBAL_CAPACITY, GLOBAL_WINDOW);
 
 function clientIp(req) {
   const forwarded = req.headers['x-forwarded-for'];
@@ -135,7 +171,7 @@ async function serveStatic(res, pathname) {
   return 200;
 }
 
-function readBody(req) {
+function readBody(req, limit = MAX_BODY) {
   return new Promise((done) => {
     const chunks = [];
     let size = 0;
@@ -143,7 +179,7 @@ function readBody(req) {
     req.on('data', (chunk) => {
       if (over) return;
       size += chunk.length;
-      if (size > MAX_BODY) {
+      if (size > limit) {
         over = true;
         chunks.length = 0;
         done(null);
@@ -199,6 +235,60 @@ function parseSpeak(text) {
   };
 }
 
+function clean(text) {
+  return text.replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function parseChat(text) {
+  if (text === null || text.length > MAX_CHAT_BODY) return null;
+  let body = null;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  if (!isPlain(body) || !isPlain(body.npc) || !isPlain(body.world)) return null;
+  const npc = body.npc;
+  const world = body.world;
+  if (!isText(npc.name) || !NAME_PATTERN.test(npc.name)) return null;
+  if (!isText(npc.glyph) || !GLYPH_PATTERN.test(npc.glyph)) return null;
+  if (!TEMPERAMENTS.has(npc.temperament)) return null;
+  if (!isText(npc.homeKind) || !KIND_PATTERN.test(npc.homeKind)) return null;
+  if (!isText(npc.homeLetter) || !LETTER_PATTERN.test(npc.homeLetter)) return null;
+  if (!PHASES.has(world.phase) || !GROUNDS.has(world.ground)) return null;
+  if (!isText(world.hint) || world.hint.length > MAX_HINT) return null;
+  if (!Number.isInteger(world.lettersFound) || world.lettersFound < 0 || world.lettersFound > 26) return null;
+  if (typeof world.metBefore !== 'boolean') return null;
+  if (!Array.isArray(body.history) || body.history.length > MAX_HISTORY) return null;
+  const history = [];
+  for (const entry of body.history) {
+    if (!isPlain(entry) || !SPEAKERS.has(entry.who) || !isText(entry.text)) return null;
+    if (entry.text.length > MAX_TEXT) return null;
+    const said = clean(entry.text);
+    if (!said) return null;
+    history.push({ who: entry.who, text: said });
+  }
+  if (!isText(body.message) || body.message.length > MAX_TEXT) return null;
+  return {
+    npc: {
+      name: npc.name,
+      glyph: npc.glyph,
+      temperament: npc.temperament,
+      homeKind: npc.homeKind,
+      homeLetter: npc.homeLetter,
+    },
+    world: {
+      phase: world.phase,
+      ground: world.ground,
+      hint: clean(world.hint),
+      lettersFound: world.lettersFound,
+      metBefore: world.metBefore,
+    },
+    history,
+    message: clean(body.message),
+  };
+}
+
 function userTextFor(facts) {
   const lines = [
     `your name: ${facts.npc.name}`,
@@ -225,6 +315,77 @@ function tidy(raw) {
     const space = line.lastIndexOf(' ');
     if (space > 0) line = line.slice(0, space);
     line = line.trim();
+  }
+  return line;
+}
+
+function homeText(npc) {
+  if (npc.homeKind === 'letter') {
+    return npc.homeLetter ? `under the giant letter ${npc.homeLetter.toUpperCase()}` : 'under one of the giant letters';
+  }
+  return HOMES.get(npc.homeKind) || 'near one of the landmarks';
+}
+
+function chatInstructions(turn) {
+  const { npc, world } = turn;
+  return [
+    `You are ${npc.name}, a villager in a quiet, endless world made of punctuation.`,
+    'The only capital letters in this world are giant letters standing on the hills. Villagers are lowercase letters who live near the landmarks: the giant letters, castles, rings of standing stones, lone tall trees, still pools and low stone shelters.',
+    `You are the lowercase letter ${npc.glyph}, you are ${npc.temperament} by nature, and you live ${homeText(npc)}.`,
+    world.metBefore
+      ? 'You have talked with this traveller before and you remember them.'
+      : 'You have never met this traveller before.',
+    `It is ${world.phase}. The traveller is standing on ${GROUND_WORDS.get(world.ground)}. They have found ${world.lettersFound} of the 26 giant letters.`,
+    world.hint
+      ? `The nearest thing they have not found yet: ${world.hint}.`
+      : 'You know of nothing close by that they have not found yet.',
+    'Speak in lowercase only, with no exclamation marks, in one or two short sentences and never more than 200 characters.',
+    'Stay in character: plain words, a little strange, like someone who has lived in one small place a long time.',
+    'Answer what the traveller just said, using these facts. If they ask the way, where to go, or about letters or landmarks, point them toward the nearest thing they have not found yet, with its direction and how far it is. Never invent other places.',
+    'You only know this world. If they talk about anything outside it, be gently puzzled and turn the talk back to the land, the light, the letters or the path.',
+    'Never mention keys, controls, screens, games, players or being an AI, and never step outside the world.',
+    'Do not repeat what you have already said.',
+    'Words in brackets describe what the traveller does rather than what they say.',
+    'Reply with your own words only, with no name in front and no quotation marks.',
+  ].join('\n');
+}
+
+function chatInput(turn) {
+  const input = turn.history.map((line) => ({
+    role: line.who === 'player' ? 'user' : 'assistant',
+    content: line.text,
+  }));
+  let last = turn.message;
+  if (!last) {
+    last = turn.history.length === 0
+      ? '(the traveller comes up to you and waits)'
+      : '(the traveller waits for you to say more)';
+  }
+  input.push({ role: 'user', content: last });
+  return input;
+}
+
+function escapePattern(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function tidyReply(raw, npc) {
+  let text = String(raw).replace(/\s+/g, ' ').toLowerCase();
+  text = text.replace(/\*[^*]*\*/g, ' ').replace(/\([^)]*\)/g, ' ').replace(/\[[^\]]*\]/g, ' ');
+  text = text.replace(/!+(?=\s|$)/g, '.').split('!').join('');
+  text = text.replace(/\s+/g, ' ').trim().replace(/^["'`“‘]+/, '').trim();
+  const label = new RegExp(`^(${escapePattern(npc.name.toLowerCase())}|${escapePattern(npc.glyph)})\\s*[:—-]\\s*`);
+  text = text.replace(label, '').replace(/^["'`“‘]+/, '').trim();
+  const sentences = (text.match(/[^.?]+[.?]*/g) || [])
+    .map((part) => part.trim())
+    .filter((part) => /[a-z0-9]/.test(part));
+  let line = sentences.slice(0, 2).join(' ');
+  line = line.replace(/["'`”’]+$/, '').replace(/[.\s]+$/, '').trim();
+  if (line.length > MAX_REPLY) {
+    line = line.slice(0, MAX_REPLY);
+    const space = line.lastIndexOf(' ');
+    if (space > 0) line = line.slice(0, space);
+    line = line.replace(/[\s,;:—-]+$/, '').trim();
   }
   return line;
 }
@@ -282,6 +443,35 @@ async function askModel(facts) {
   return { line, usage, reason: null };
 }
 
+function callChat(turn, reasoning) {
+  return client.responses.create(
+    {
+      model: MODEL,
+      instructions: chatInstructions(turn),
+      input: chatInput(turn),
+      max_output_tokens: 400,
+      store: false,
+      ...(reasoning ? { reasoning: { effort: 'minimal' } } : {}),
+    },
+    { timeout: CHAT_TIMEOUT, maxRetries: 0 },
+  );
+}
+
+async function askChatModel(turn) {
+  const reasoning = MODEL.startsWith('gpt-5');
+  let response = null;
+  try {
+    response = await callChat(turn, reasoning);
+  } catch (error) {
+    if (!reasoning || !rejectsReasoning(error)) throw error;
+    response = await callChat(turn, false);
+  }
+  const usage = response.usage;
+  const line = tidyReply(response.output_text ?? '', turn.npc);
+  if (!line) return { line: null, usage, reason: 'empty' };
+  return { line, usage, reason: null };
+}
+
 async function handleSpeak(req, res) {
   const facts = parseSpeak(await readBody(req));
   if (!facts) return { status: sendText(res, 400, 'bad request'), note: 'invalid' };
@@ -289,6 +479,22 @@ async function handleSpeak(req, res) {
   if (!client) return { status: sendJson(res, 503, { fallback: true }), note: 'no key' };
   try {
     const result = await askModel(facts);
+    if (!result.line) {
+      return { status: sendJson(res, 502, { fallback: true }), note: usageNote(result.usage, result.reason) };
+    }
+    return { status: sendJson(res, 200, { line: result.line }), note: usageNote(result.usage, null) };
+  } catch (error) {
+    return { status: sendJson(res, 502, { fallback: true }), note: errorName(error) };
+  }
+}
+
+async function handleChat(req, res) {
+  const turn = parseChat(await readBody(req, MAX_CHAT_BODY));
+  if (!turn) return { status: sendText(res, 400, 'bad request'), note: 'invalid' };
+  if (!allowChat(clientIp(req))) return { status: sendJson(res, 429, { fallback: true }), note: 'rate limited' };
+  if (!client) return { status: sendJson(res, 503, { fallback: true }), note: 'no key' };
+  try {
+    const result = await askChatModel(turn);
     if (!result.line) {
       return { status: sendJson(res, 502, { fallback: true }), note: usageNote(result.usage, result.reason) };
     }
@@ -306,6 +512,10 @@ async function handle(req, res, pathname) {
   if (pathname === '/api/npc/speak') {
     if (req.method !== 'POST') return { status: sendText(res, 405, 'method not allowed'), note: null };
     return handleSpeak(req, res);
+  }
+  if (pathname === '/api/npc/chat') {
+    if (req.method !== 'POST') return { status: sendText(res, 405, 'method not allowed'), note: null };
+    return handleChat(req, res);
   }
   if (req.method !== 'GET') return { status: sendText(res, 404, 'not found'), note: null };
   return { status: await serveStatic(res, pathname), note: null };

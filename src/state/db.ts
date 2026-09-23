@@ -5,19 +5,50 @@ export interface Discovery {
   x: number;
   z: number;
   at: number;
+  day?: number;
 }
+
+export interface PersonEntry {
+  id: string;
+  type: 'person';
+  name: string;
+  home: string;
+  said: string;
+  day: number;
+  at: number;
+}
+
+export interface TraceEntry {
+  id: string;
+  type: 'trace';
+  kind: number;
+  x: number;
+  z: number;
+  day: number;
+  at: number;
+}
+
+export type JournalEntry = PersonEntry | TraceEntry;
 
 export interface Db {
   addDiscovery(d: Discovery): Promise<void>;
   listDiscoveries(): Promise<Discovery[]>;
   markVisited(key: string): void;
   listVisited(): Promise<string[]>;
+  putJournal(entry: JournalEntry): Promise<void>;
+  listJournal(): Promise<JournalEntry[]>;
   close(): void;
 }
 
 const DISCOVERIES = 'discoveries';
 const VISITED = 'visited';
-const DB_VERSION = 1;
+const JOURNAL = 'journal';
+const STORES = [DISCOVERIES, VISITED, JOURNAL];
+const DB_VERSION = 2;
+const MAX_ID = 96;
+const MAX_NAME = 32;
+const MAX_HOME = 64;
+const MAX_SAID = 240;
 const OPEN_TIMEOUT_MS = 4000;
 const FLUSH_MS = 5000;
 const FLUSH_KEYS = 200;
@@ -86,6 +117,7 @@ function openRaw(name: string): Promise<IDBDatabase | null> {
         const db = req.result;
         if (!db.objectStoreNames.contains(DISCOVERIES)) db.createObjectStore(DISCOVERIES, { keyPath: 'id' });
         if (!db.objectStoreNames.contains(VISITED)) db.createObjectStore(VISITED, { keyPath: 'key' });
+        if (!db.objectStoreNames.contains(JOURNAL)) db.createObjectStore(JOURNAL, { keyPath: 'id' });
       } catch {
         return;
       }
@@ -97,16 +129,26 @@ function openRaw(name: string): Promise<IDBDatabase | null> {
       } catch {
         db = null;
       }
-      if (db && (!db.objectStoreNames.contains(DISCOVERIES) || !db.objectStoreNames.contains(VISITED))) {
+      const opened = db;
+      if (opened && !STORES.every((store) => opened.objectStoreNames.contains(store))) {
         try {
-          db.close();
+          opened.close();
         } catch {
           db = null;
         }
         finish(null);
         return;
       }
-      finish(db);
+      if (opened) {
+        opened.onversionchange = (): void => {
+          try {
+            opened.close();
+          } catch {
+            return;
+          }
+        };
+      }
+      finish(opened);
     };
     req.onerror = (): void => finish(null);
     req.onblocked = (): void => finish(null);
@@ -158,12 +200,20 @@ function putAll(db: IDBDatabase, store: string, values: unknown[]): Promise<void
   });
 }
 
+function isDay(v: unknown): v is number {
+  return typeof v === 'number' && Number.isInteger(v) && v >= 1;
+}
+
+function isNumber(v: unknown): v is number {
+  return typeof v === 'number' && Number.isFinite(v);
+}
+
 function toDiscovery(v: unknown): Discovery | null {
   if (typeof v !== 'object' || v === null) return null;
   const r = v as Record<string, unknown>;
   if (typeof r.id !== 'string' || typeof r.kind !== 'string') return null;
   if (typeof r.x !== 'number' || typeof r.z !== 'number' || typeof r.at !== 'number') return null;
-  return {
+  const d: Discovery = {
     id: r.id,
     kind: r.kind,
     letter: typeof r.letter === 'string' ? r.letter : null,
@@ -171,6 +221,34 @@ function toDiscovery(v: unknown): Discovery | null {
     z: r.z,
     at: r.at,
   };
+  if (isDay(r.day)) d.day = r.day;
+  return d;
+}
+
+function toJournalEntry(v: unknown): JournalEntry | null {
+  if (typeof v !== 'object' || v === null) return null;
+  const r = v as Record<string, unknown>;
+  if (typeof r.id !== 'string' || r.id.length === 0 || r.id.length > MAX_ID) return null;
+  if (!isDay(r.day) || !isNumber(r.at)) return null;
+  if (r.type === 'person') {
+    if (typeof r.name !== 'string' || typeof r.home !== 'string' || typeof r.said !== 'string') return null;
+    const name = r.name.slice(0, MAX_NAME);
+    if (name.length === 0) return null;
+    return {
+      id: r.id,
+      type: 'person',
+      name,
+      home: r.home.slice(0, MAX_HOME),
+      said: r.said.slice(0, MAX_SAID),
+      day: r.day,
+      at: r.at,
+    };
+  }
+  if (r.type === 'trace') {
+    if (!isNumber(r.kind) || !isNumber(r.x) || !isNumber(r.z)) return null;
+    return { id: r.id, type: 'trace', kind: r.kind, x: r.x, z: r.z, day: r.day, at: r.at };
+  }
+  return null;
 }
 
 export async function openDb(seed: number): Promise<Db> {
@@ -183,6 +261,7 @@ export async function openDb(seed: number): Promise<Db> {
 
   const discoveries = new Map<string, Discovery>();
   const visited = new Set<string>();
+  const journal = new Map<string, JournalEntry>();
 
   const hydrate = async (source: IDBDatabase): Promise<void> => {
     try {
@@ -193,6 +272,10 @@ export async function openDb(seed: number): Promise<Db> {
       for (const row of await readAll(source, VISITED)) {
         const r = row as { key?: unknown } | null;
         if (r && typeof r.key === 'string') visited.add(r.key);
+      }
+      for (const row of await readAll(source, JOURNAL)) {
+        const entry = toJournalEntry(row);
+        if (entry) journal.set(entry.id, entry);
       }
     } catch {
       return;
@@ -250,6 +333,18 @@ export async function openDb(seed: number): Promise<Db> {
     },
     listVisited(): Promise<string[]> {
       return Promise.resolve(Array.from(visited));
+    },
+    putJournal(entry: JournalEntry): Promise<void> {
+      const clean = toJournalEntry(entry);
+      if (!clean || closed) return Promise.resolve();
+      journal.set(clean.id, clean);
+      if (!db) return Promise.resolve();
+      return putAll(db, JOURNAL, [clean]);
+    },
+    listJournal(): Promise<JournalEntry[]> {
+      const rows = Array.from(journal.values());
+      rows.sort((a, b) => a.at - b.at);
+      return Promise.resolve(rows);
     },
     close(): void {
       if (closed) return;

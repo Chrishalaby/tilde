@@ -3,9 +3,11 @@ import {
   DEFAULT_SETTINGS,
   loadPose,
   loadSettings,
+  loadTravel,
   loadWorld,
   savePose,
   saveSettings,
+  saveTravel,
   saveWorld,
   type Settings,
 } from '../src/state/store';
@@ -79,6 +81,8 @@ describe('store without localStorage', () => {
     expect(() => saveSettings(DEFAULT_SETTINGS)).not.toThrow();
     expect(() => saveWorld({ seed: 1, genVersion: 1 })).not.toThrow();
     expect(() => savePose({ x: 0, z: 0, yaw: 0, pitch: 0, timeOfDay: 0 })).not.toThrow();
+    expect(() => saveTravel(1, { day: 2, walked: 10, startX: 0, startZ: 0 })).not.toThrow();
+    expect(loadTravel(1)).toBeNull();
   });
 
   it('does not throw when localStorage itself throws', () => {
@@ -136,5 +140,38 @@ describe('store with a localStorage stub', () => {
     expect(loaded.cellW).toBe(9);
     expect(loaded.cellH).toBe(DEFAULT_SETTINGS.cellH);
     expect(loaded.volume).toBe(DEFAULT_SETTINGS.volume);
+  });
+});
+
+describe('travel per world', () => {
+  it('round-trips days, distance walked and the starting point', () => {
+    const stub = install();
+    const travel = { day: 4, walked: 12345.5, startX: -120.5, startZ: 88.25 };
+    saveTravel(987654, travel);
+    expect(stub.getItem('tilde.travel.' + (987654).toString(36))).toBeTypeOf('string');
+    expect(loadTravel(987654)).toEqual(travel);
+  });
+
+  it('keeps each world to itself', () => {
+    install();
+    saveTravel(1, { day: 3, walked: 900, startX: 1, startZ: 2 });
+    saveTravel(2, { day: 9, walked: 40, startX: 5, startZ: 6 });
+    expect(loadTravel(1)).toEqual({ day: 3, walked: 900, startX: 1, startZ: 2 });
+    expect(loadTravel(2)).toEqual({ day: 9, walked: 40, startX: 5, startZ: 6 });
+    expect(loadTravel(3)).toBeNull();
+  });
+
+  it('mends impossible values and ignores a record without a start', () => {
+    const stub = install();
+    stub.setItem('tilde.travel.' + (7).toString(36), JSON.stringify({ day: -3, walked: -50, startX: 0, startZ: 4 }));
+    expect(loadTravel(7)).toEqual({ day: 1, walked: 0, startX: 0, startZ: 4 });
+    stub.setItem('tilde.travel.' + (8).toString(36), JSON.stringify({ day: 2.7, walked: 'far', startX: 3, startZ: 4 }));
+    expect(loadTravel(8)).toEqual({ day: 2, walked: 0, startX: 3, startZ: 4 });
+    stub.setItem('tilde.travel.' + (9).toString(36), JSON.stringify({ day: 2, walked: 10, startX: 'here' }));
+    expect(loadTravel(9)).toBeNull();
+    stub.setItem('tilde.travel.' + (10).toString(36), '{not json');
+    expect(loadTravel(10)).toBeNull();
+    saveTravel(11, { day: 0, walked: Number.NaN, startX: 1, startZ: 1 });
+    expect(loadTravel(11)).toEqual({ day: 1, walked: 0, startX: 1, startZ: 1 });
   });
 });

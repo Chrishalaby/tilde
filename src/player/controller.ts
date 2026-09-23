@@ -45,13 +45,17 @@ export interface PlayerOptions {
   heightAt(x: number, z: number): number;
   initial: PlayerPose;
   headBob?: boolean;
+  collide?: (x: number, z: number, radius: number) => { x: number; z: number };
 }
+
+export const PLAYER_RADIUS = 0.35;
 
 const TURN_RATE = 1.1;
 const PITCH_LIMIT = Math.PI / 2 - 0.05;
+const PUSH_EPSILON = 1e-6;
 
 export function createPlayer(opts: PlayerOptions): Player {
-  const { canvas, heightAt } = opts;
+  const { canvas, heightAt, collide } = opts;
   const pose: PlayerPose = { ...opts.initial };
   const view: PlayerView = { x: pose.x, y: 0, z: pose.z, yaw: pose.yaw, pitch: pose.pitch };
   const keys = new Set<string>();
@@ -177,8 +181,27 @@ export function createPlayer(opts: PlayerOptions): Player {
     vx += (tx - vx) * k;
     vz += (tz - vz) * k;
 
-    const nx = pose.x + vx * dt;
-    const nz = pose.z + vz * dt;
+    const freeX = pose.x + vx * dt;
+    const freeZ = pose.z + vz * dt;
+    let nx = freeX;
+    let nz = freeZ;
+    if (collide) {
+      const settled = collide(freeX, freeZ, PLAYER_RADIUS);
+      nx = settled.x;
+      nz = settled.z;
+      const pushX = nx - freeX;
+      const pushZ = nz - freeZ;
+      const push = Math.hypot(pushX, pushZ);
+      if (push > PUSH_EPSILON) {
+        const ux = pushX / push;
+        const uz = pushZ / push;
+        const into = vx * ux + vz * uz;
+        if (into < 0) {
+          vx -= into * ux;
+          vz -= into * uz;
+        }
+      }
+    }
     const nh = heightAt(nx, nz);
     if (nh >= SEA_LEVEL - MAX_WADE_DEPTH) {
       pose.x = nx;

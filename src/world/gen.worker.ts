@@ -21,5 +21,7 @@ ctx.onmessage = (event: MessageEvent<GenRequest>) => {
   if (req.genVersion !== GEN_VERSION) return;
   const data = generateChunk(req.seed, req.cx, req.cz, samplerFor(req.seed));
   const reply: ChunkReply = { type: 'chunk', ...data };
-  ctx.postMessage(reply, [reply.heights.buffer, reply.materials.buffer, reply.props.buffer]);
+  const transfer: Transferable[] = [reply.heights.buffer, reply.materials.buffer, reply.props.buffer];
+  if (reply.roads) transfer.push(reply.roads.buffer);
+  ctx.postMessage(reply, transfer);
 };

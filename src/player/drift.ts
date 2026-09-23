@@ -16,6 +16,11 @@ const PAUSE_SPAN = 50;
 const REST_MIN = 7;
 const REST_SPAN = 9;
 const CANDIDATES = [0, 0.25, -0.25, 0.5, -0.5, 0.9, -0.9, 1.3, -1.3, 1.9, -1.9, 2.6, -2.6, Math.PI];
+const STALL_TIME = 1.5;
+const STALL_DISTANCE = 0.3;
+const STALL_MEMORY = 8;
+const SETTLE_ANGLE = 0.6;
+const ESCAPES = [1.3, 1.9, 2.6, Math.PI];
 
 export function createDrift(player: Player, heightAt: (x: number, z: number) => number): Drift {
   let targetYaw = player.pose.yaw;
@@ -25,6 +30,12 @@ export function createDrift(player: Player, heightAt: (x: number, z: number) => 
   let blockCooldown = 0;
   let targetPitch = -0.02;
   let escaping = false;
+  let anchorX = player.pose.x;
+  let anchorZ = player.pose.z;
+  let stalledFor = 0;
+  let settling = false;
+  let escapeSign = 1;
+  let sinceEscape = Infinity;
 
   const probe = (yaw: number, dist: number): number => {
     const x = player.pose.x - Math.sin(yaw) * dist;
@@ -62,6 +73,48 @@ export function createDrift(player: Player, heightAt: (x: number, z: number) => 
     escaping = true;
   };
 
+  const holdAnchor = () => {
+    anchorX = player.pose.x;
+    anchorZ = player.pose.z;
+    stalledFor = 0;
+  };
+
+  const headingError = (): number => {
+    const diff = targetYaw - player.pose.yaw;
+    return Math.atan2(Math.sin(diff), Math.cos(diff));
+  };
+
+  const stalled = (dt: number): boolean => {
+    const dx = player.pose.x - anchorX;
+    const dz = player.pose.z - anchorZ;
+    if (dx * dx + dz * dz > STALL_DISTANCE * STALL_DISTANCE) {
+      holdAnchor();
+      return false;
+    }
+    stalledFor += dt;
+    return stalledFor >= STALL_TIME;
+  };
+
+  const unstick = (rng: number) => {
+    if (sinceEscape > STALL_MEMORY) escapeSign = rng < 0.5 ? -1 : 1;
+    sinceEscape = 0;
+    const base = player.pose.yaw;
+    let chosen = base + escapeSign * Math.PI;
+    for (const turn of ESCAPES) {
+      if (clear(base + escapeSign * turn)) {
+        chosen = base + escapeSign * turn;
+        break;
+      }
+      if (clear(base - escapeSign * turn)) {
+        chosen = base - escapeSign * turn;
+        break;
+      }
+    }
+    targetYaw = chosen;
+    escaping = true;
+    settling = true;
+  };
+
   const update = (dt: number) => {
     const input = player.driftInput;
     input.strafe = 0;
@@ -70,6 +123,7 @@ export function createDrift(player: Player, heightAt: (x: number, z: number) => 
     input.turn = 0;
 
     if (blockCooldown > 0) blockCooldown -= dt;
+    sinceEscape += dt;
     untilRetarget -= dt;
     if (untilRetarget <= 0) {
       retarget(Math.random());
@@ -79,6 +133,7 @@ export function createDrift(player: Player, heightAt: (x: number, z: number) => 
     if (restLeft > 0) {
       restLeft -= dt;
       input.forward = 0;
+      holdAnchor();
     } else {
       untilPause -= dt;
       if (untilPause <= 0) {
@@ -94,10 +149,23 @@ export function createDrift(player: Player, heightAt: (x: number, z: number) => 
         untilRetarget = RETARGET_MIN + Math.random() * RETARGET_SPAN;
       }
       input.forward = 1;
+      if (settling) {
+        if (Math.abs(headingError()) > SETTLE_ANGLE) {
+          input.forward = 0;
+          holdAnchor();
+        } else {
+          settling = false;
+        }
+      } else if (stalled(dt)) {
+        unstick(Math.random());
+        holdAnchor();
+        blockCooldown = BLOCK_COOLDOWN;
+        untilRetarget = RETARGET_MIN + Math.random() * RETARGET_SPAN;
+        input.forward = 0;
+      }
     }
 
-    let diff = targetYaw - player.pose.yaw;
-    diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+    const diff = headingError();
     const rate = escaping ? ESCAPE_TURN_RATE : TURN_RATE;
     const stepSize = rate * dt;
     if (Math.abs(diff) <= stepSize) {
@@ -115,6 +183,8 @@ export function createDrift(player: Player, heightAt: (x: number, z: number) => 
     restLeft = 0;
     blockCooldown = 0;
     escaping = false;
+    settling = false;
+    holdAnchor();
   };
 
   return { update, reset };

@@ -1,7 +1,8 @@
-import { CHUNK_SIZE, CHUNK_VERTS, GEN_VERSION, MATERIAL, PROP, VERTEX_SPACING } from '../config';
+import { CHUNK_SIZE, CHUNK_VERTS, GEN_VERSION, MATERIAL, PROP, REGION_SIZE, VERTEX_SPACING } from '../config';
 import { materialFor } from './biomes';
 import { hash01, mix32 } from './hash';
 import { landmarkInChunk } from './landmarks';
+import { buildRoads, regionRoads, roadEdge } from './roads';
 import { createSampler } from './sampler';
 import type { ChunkData, WorldSampler } from './types';
 
@@ -17,7 +18,8 @@ const TREE_SCALE_RANGE = 0.6;
 const ROCK_SCALE_MIN = 0.5;
 const ROCK_SCALE_RANGE = 1;
 const LANDMARK_CLEARANCE = 6;
-const CASTLE_CLEARANCE = 16;
+export const CASTLE_CLEARANCE = 24;
+export const ROAD_CLEARANCE = 1.5;
 
 const TRACE_CELLS = 4;
 const TRACE_CELL = CHUNK_SIZE / TRACE_CELLS;
@@ -45,6 +47,16 @@ const STUMPS_CLEAR = STUMPS_RADIUS + 1;
 const DOOR_CHANCE = 0.004;
 const FALLEN_CHANCE = 0.004;
 const COLD_FIRE_CHANCE = 0.025;
+
+export const TRACE_REACH: Record<number, number> = {
+  [PROP.WRECK]: 4.5,
+  [PROP.CAIRN]: 0.5,
+  [PROP.COLD_FIRE]: 1,
+  [PROP.FALLEN]: 5.5,
+  [PROP.STEPPING]: 3.6,
+  [PROP.DOOR]: 1,
+  [PROP.STUMPS]: 5.8,
+};
 
 const DIAGONAL = 0.7071067811865476;
 const PROBE_DIRS: ReadonlyArray<readonly [number, number]> = [
@@ -187,8 +199,11 @@ export function generateChunk(
     }
   }
 
+  const region = regionRoads(seed, Math.floor(x0 / REGION_SIZE), Math.floor(z0 / REGION_SIZE), world);
+  const roads = buildRoads(seed, cx, cz, world, ring, region);
   const landmark = landmarkInChunk(seed, cx, cz, world);
-  const reach = landmark !== null && landmark.kind === 'castle'
+  const home = region.home;
+  const reach = home !== null && home.kind === 'castle'
     ? CASTLE_CLEARANCE
     : LANDMARK_CLEARANCE;
   const clearance = reach * reach;
@@ -202,9 +217,9 @@ export function generateChunk(
       const lz = (tj + TRACE_EDGE + TRACE_SPAN * hash01(salt, ti, tj, 12)) * TRACE_CELL;
       const x = x0 + lx;
       const z = z0 + lz;
-      if (landmark) {
-        const ox = x - landmark.x;
-        const oz = z - landmark.z;
+      if (home) {
+        const ox = x - home.x;
+        const oz = z - home.z;
         if (ox * ox + oz * oz < clearance) continue;
       }
       const vi = Math.min(CHUNK_VERTS - 1, Math.round(lx / VERTEX_SPACING));
@@ -213,6 +228,7 @@ export function generateChunk(
       const h = heightAt(heights, lx, lz);
       const kind = traceKind(world, salt, ti, tj, lx, lz, x, z, m, h);
       if (kind < 0) continue;
+      if (roadEdge(roads, lx, lz) < ROAD_CLEARANCE + (TRACE_REACH[kind] ?? 0)) continue;
       const scale = TRACE_SCALE_MIN + hash01(salt, ti, tj, 13) * TRACE_SCALE_RANGE;
       list.push(x, z, kind, scale);
       if (kind === PROP.STUMPS) clearings.push(x, z);
@@ -244,11 +260,12 @@ export function generateChunk(
 
       const x = x0 + lx;
       const z = z0 + lz;
-      if (landmark) {
-        const ox = x - landmark.x;
-        const oz = z - landmark.z;
+      if (home) {
+        const ox = x - home.x;
+        const oz = z - home.z;
         if (ox * ox + oz * oz < clearance) continue;
       }
+      if (roadEdge(roads, lx, lz) < ROAD_CLEARANCE) continue;
       let cleared = false;
       for (let c = 0; c < clearings.length; c += 2) {
         const ox = x - clearings[c];
@@ -276,5 +293,6 @@ export function generateChunk(
     materials,
     props: new Float32Array(list),
     landmark,
+    roads,
   };
 }

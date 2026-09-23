@@ -22,6 +22,7 @@ export const RAMPS: Record<number, string> = {
   [MATERIAL.TRUNK]: '|!',
   [MATERIAL.FIRE]: '^*&',
   [MATERIAL.FIGURE]: 'A',
+  [MATERIAL.DIRT]: ' ..-_',
 };
 
 export const ATLAS_COLS = 16;

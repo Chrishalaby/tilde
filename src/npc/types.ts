@@ -49,6 +49,7 @@ export interface NpcWorld {
   landmarksNear(x: number, z: number, radius: number): Landmark[];
   discovered(key: string): boolean;
   fires(): Array<{ x: number; z: number }>;
+  collide?(x: number, z: number, radius: number): { x: number; z: number };
 }
 
 export interface Intent {
@@ -57,8 +58,23 @@ export interface Intent {
   state: NpcState;
 }
 
+export type Speaker = 'player' | 'npc';
+
+export interface ChatLine {
+  who: Speaker;
+  text: string;
+}
+
+export interface ChatTurn {
+  history: ChatLine[];
+  message: string;
+  metBefore: boolean;
+  homeKind: string;
+}
+
 export interface Brain {
   decide(npc: Npc, world: NpcWorld, dt: number, rng: () => number): Intent;
   speak(npc: Npc, world: NpcWorld, rng: () => number): string;
   speakAsync?(npc: Npc, world: NpcWorld, rng: () => number): Promise<string | null>;
+  chat?(npc: Npc, world: NpcWorld, turn: ChatTurn, rng: () => number): Promise<string>;
 }

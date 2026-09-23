@@ -1,5 +1,8 @@
 in vec3 vWorld;
 flat in float vMaterial;
+in vec2 vRoadMain;
+in vec2 vRoadPath;
+in vec2 vRoadSpur;
 
 uniform vec3 uSunDir;
 uniform float uSunStrength;
@@ -28,12 +31,31 @@ float vnoise(vec2 q) {
   return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
 }
 
+float roadGap(vec2 lane) {
+  return lane.y > 0.02 ? abs(lane.x) - lane.y : 1000.0;
+}
+
 void main() {
   vec3 n = normalize(cross(dFdx(vWorld), dFdy(vWorld)));
   float material = floor(vMaterial + 0.5);
+  float rutPx = max(fwidth(vRoadMain.x), 0.0001);
 
   float lambert = max(0.0, dot(n, normalize(uSunDir)));
   float hemi = 0.12 * (0.5 + 0.5 * n.y);
+
+  float wear = 1.0;
+  if (uIsWater < 0.5 && material < 4.5) {
+    float mainGap = roadGap(vRoadMain);
+    float gap = min(mainGap, min(roadGap(vRoadPath), roadGap(vRoadSpur)));
+    float fray = 0.24 * (vnoise(vWorld.xz * 1.7) - 0.5);
+    if (gap + fray < 0.0) {
+      material = 12.0;
+      float rutOff = abs(abs(vRoadMain.x) - 0.8);
+      float rutBand = 1.0 - smoothstep(0.11 - rutPx, 0.11 + rutPx, rutOff);
+      float rutFade = (1.0 - smoothstep(0.2, 0.5, rutPx)) * smoothstep(0.15, 0.45, -mainGap);
+      wear = (1.0 - 0.38 * rutBand * rutFade) * (0.93 + 0.07 * vnoise(vWorld.xz * 0.35));
+    }
+  }
 
   float scrub = 1.0;
   if (material < 1.5) {
@@ -41,7 +63,7 @@ void main() {
     scrub = 1.0 - 0.35 * smoothstep(0.55, 0.80, p);
   }
 
-  float light = clamp((lambert * uSunStrength + hemi) * scrub, 0.0, 1.0);
+  float light = clamp((lambert * uSunStrength + hemi) * scrub * wear, 0.0, 1.0);
 
   if (uIsWater > 0.5) {
     float ripple = 0.5 * sin(vWorld.x * 0.21 + uTime * 0.8) + 0.5 * sin(vWorld.z * 0.17 - uTime * 0.55);

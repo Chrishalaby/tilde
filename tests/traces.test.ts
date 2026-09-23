@@ -3,7 +3,15 @@ import { describe, expect, it } from 'vitest';
 import { CHUNK_SIZE, CHUNK_VERTS, MATERIAL, PROP } from '../src/config';
 import type { GlyphAtlas } from '../src/render/glyph-atlas';
 import { buildProps } from '../src/render/props';
-import { CAIRN_HEIGHT, WRECK_SHALLOW, WRECK_SHORE, generateChunk } from '../src/world/chunk-gen';
+import {
+  CAIRN_HEIGHT,
+  ROAD_CLEARANCE,
+  TRACE_REACH,
+  WRECK_SHALLOW,
+  WRECK_SHORE,
+  generateChunk,
+} from '../src/world/chunk-gen';
+import { roadEdge } from '../src/world/roads';
 import { createSampler } from '../src/world/sampler';
 import type { ChunkData } from '../src/world/types';
 
@@ -192,6 +200,29 @@ describe('traces', () => {
     material.dispose();
     expect(meshes).toBeGreaterThan(0);
     expect(instances).toBeGreaterThan(0);
+  });
+
+  it('leaves the roads clear of every trace and its footprint', () => {
+    const sampler = createSampler(SEED);
+    let seen = 0;
+    for (let cz = -12; cz < 12; cz++) {
+      for (let cx = -12; cx < 12; cx++) {
+        const chunk = generateChunk(SEED, cx, cz, sampler);
+        const roads = chunk.roads;
+        expect(roads).toBeInstanceOf(Float32Array);
+        if (!roads) continue;
+        for (let p = 0; p < chunk.props.length; p += 4) {
+          const kind = chunk.props[p + 2];
+          if (!isTrace(kind)) continue;
+          const lx = chunk.props[p] - cx * CHUNK_SIZE;
+          const lz = chunk.props[p + 1] - cz * CHUNK_SIZE;
+          expect(TRACE_REACH[kind]).toBeGreaterThan(0);
+          expect(roadEdge(roads, lx, lz)).toBeGreaterThanOrEqual(ROAD_CLEARANCE + TRACE_REACH[kind]);
+          seen++;
+        }
+      }
+    }
+    expect(seen).toBeGreaterThan(0);
   });
 
   it('keeps every trace on the chunk it was generated for', () => {

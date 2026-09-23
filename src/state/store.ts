@@ -21,6 +21,13 @@ export interface Pose {
   timeOfDay: number;
 }
 
+export interface Travel {
+  day: number;
+  walked: number;
+  startX: number;
+  startZ: number;
+}
+
 export const DEFAULT_SETTINGS: Settings = {
   cellW: CELL_W,
   cellH: CELL_H,
@@ -32,6 +39,7 @@ export const DEFAULT_SETTINGS: Settings = {
 const SETTINGS_KEY = 'tilde.settings.v3';
 const WORLD_KEY = 'tilde.world';
 const POSE_KEY = 'tilde.pose';
+const TRAVEL_PREFIX = 'tilde.travel.';
 
 function storage(): Storage | null {
   try {
@@ -152,4 +160,36 @@ export function savePose(p: Pose): void {
   const timeOfDay = asNumber(p.timeOfDay);
   if (x === null || z === null || yaw === null || pitch === null || timeOfDay === null) return;
   writeJson(POSE_KEY, { x, z, yaw, pitch, timeOfDay: wrap01(timeOfDay) });
+}
+
+function travelKey(seed: number): string {
+  const s = Number.isFinite(seed) ? seed : 0;
+  return TRAVEL_PREFIX + s.toString(36);
+}
+
+export function loadTravel(seed: number): Travel | null {
+  const raw = readJson(travelKey(seed));
+  if (!isRecord(raw)) return null;
+  const startX = asNumber(raw.startX);
+  const startZ = asNumber(raw.startZ);
+  if (startX === null || startZ === null) return null;
+  return {
+    day: Math.max(1, Math.floor(numberOr(raw.day, 1))),
+    walked: Math.max(0, numberOr(raw.walked, 0)),
+    startX,
+    startZ,
+  };
+}
+
+export function saveTravel(seed: number, t: Travel): void {
+  if (!isRecord(t)) return;
+  const startX = asNumber(t.startX);
+  const startZ = asNumber(t.startZ);
+  if (startX === null || startZ === null) return;
+  writeJson(travelKey(seed), {
+    day: Math.max(1, Math.floor(numberOr(t.day, 1))),
+    walked: Math.max(0, numberOr(t.walked, 0)),
+    startX,
+    startZ,
+  });
 }

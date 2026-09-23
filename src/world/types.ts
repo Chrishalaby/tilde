@@ -17,6 +17,7 @@ export interface ChunkData {
   materials: Uint8Array;
   props: Float32Array;
   landmark: Landmark | null;
+  roads?: Float32Array;
 }
 
 export interface GenRequest {

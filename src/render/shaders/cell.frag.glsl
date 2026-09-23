@@ -219,7 +219,7 @@ void main() {
   float gyD = (depth[6] + 2.0 * depth[7] + depth[8]) - (depth[0] + 2.0 * depth[1] + depth[2]);
   bool silhouette = length(vec2(gxD, gyD)) > 0.9;
   bool litEdge = length(vec2(gxL, gyL)) > 3.0;
-  bool edgeMaterial = m == 0 || m == 1 || m == 2 || m == 3 || m == 4 || m == 9;
+  bool edgeMaterial = m == 0 || m == 1 || m == 2 || m == 3 || m == 4 || m == 9 || m == 12;
   bool isEdge = (edgeMaterial && (silhouette || litEdge)) || (m == 8 && silhouette);
   float gx = silhouette ? gxD : gxL;
   float gy = silhouette ? gyD : gyL;
@@ -345,7 +345,7 @@ void main() {
     vec3 c1 = palette(m, 1);
     vec3 c2 = palette(m, 2);
     vec3 c3 = palette(m, 3);
-    if (m == 0 || m == 1) {
+    if (m == 0 || m == 1 || m == 12) {
       float k = 0.5 * smoothstep(60.0, 90.0, alt);
       c0 = mix(c0, palette(2, 0), k);
       c1 = mix(c1, palette(2, 1), k);

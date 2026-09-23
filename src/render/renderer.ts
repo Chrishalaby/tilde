@@ -68,7 +68,7 @@ export function createRenderer(
   renderer.setClearColor(SKY_CLEAR, SKY_ALPHA);
 
   const scene = new Scene();
-  const camera = new PerspectiveCamera(70, 1, 0.5, 600);
+  const camera = new PerspectiveCamera(70, 1, 0.15, 600);
   const terrainMaterial = createTerrainMaterial();
 
   const water = createWaterMesh(WATER_SIZE);

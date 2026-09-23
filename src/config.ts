@@ -45,9 +45,10 @@ export const MATERIAL = {
   TRUNK: 9,
   FIRE: 10,
   FIGURE: 11,
+  DIRT: 12,
 } as const;
 export type MaterialId = (typeof MATERIAL)[keyof typeof MATERIAL];
-export const MATERIAL_COUNT = 12;
+export const MATERIAL_COUNT = 13;
 
 export const CLOUD_ALTITUDE = 600;
 export const CLOUD_SCALE = 900;

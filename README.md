@@ -20,6 +20,7 @@ Open the URL Vite prints. Click to look around.
 | W A S D, arrows | walk, turn |
 | Shift | run |
 | Ctrl | stroll |
+| E | talk to the villager you are looking at |
 | F | drift: the walker wanders on its own |
 | M | map |
 | J | journal |

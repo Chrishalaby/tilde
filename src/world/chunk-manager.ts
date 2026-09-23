@@ -5,6 +5,8 @@ import {
 } from '../config';
 import type { ChunkData, ChunkReply, GenRequest, Landmark, WorldSampler } from './types';
 import { chunkKey } from './types';
+import { SETTLE_PASSES, STRUCTURE_REACH, chunkColliders, pushOut } from './structures';
+import type { ColliderSet } from './structures';
 import { buildTerrainGeometry } from '../render/terrain-mesh';
 import { buildProps } from '../render/props';
 import type { GlyphAtlas } from '../render/glyph-atlas';
@@ -41,6 +43,7 @@ export interface FirePoint {
   x: number;
   y: number;
   z: number;
+  hearth?: boolean;
 }
 
 export interface ChunkStats {
@@ -64,8 +67,16 @@ export interface ChunkManager {
   landmarksNear(x: number, z: number, radius: number): Landmark[];
   firesNear(x: number, z: number, radius: number): Array<{ x: number; z: number }>;
   propsNear(x: number, z: number, radius: number): PropHit[];
+  collide(x: number, z: number, radius: number): { x: number; z: number };
   stats(): ChunkStats;
   dispose(): void;
+}
+
+const COLLIDER_REACH = STRUCTURE_REACH + 5;
+const SOLID_ROW = 1048576;
+
+function solidKey(cx: number, cz: number): number {
+  return cx * SOLID_ROW + cz;
 }
 
 function workerCount(): number {
@@ -76,6 +87,7 @@ function workerCount(): number {
 export function createChunkManager(opts: ChunkManagerOptions): ChunkManager {
   const { seed, scene, terrainMaterial, atlas, sampler } = opts;
   const entries = new Map<string, Entry>();
+  const solids = new Map<number, ColliderSet>();
   const pool: PoolWorker[] = [];
   let lastPlayerKey = '';
   let disposed = false;
@@ -142,6 +154,7 @@ export function createChunkManager(opts: ChunkManagerOptions): ChunkManager {
       if (dispose) dispose();
       e.props = null;
     }
+    solids.delete(solidKey(e.cx, e.cz));
     e.data = null;
     entries.delete(e.key);
   };
@@ -154,10 +167,11 @@ export function createChunkManager(opts: ChunkManagerOptions): ChunkManager {
     mesh.matrixAutoUpdate = false;
     scene.add(mesh);
     e.mesh = mesh;
-    const props = buildProps(e.data, terrainMaterial, atlas);
+    const props = buildProps(e.data, terrainMaterial, atlas, heightAt);
     props.matrixAutoUpdate = false;
     scene.add(props);
     e.props = props;
+    solids.set(solidKey(e.cx, e.cz), chunkColliders(e.data.props, e.data.landmark));
     e.state = 'built';
   };
 
@@ -299,6 +313,7 @@ export function createChunkManager(opts: ChunkManagerOptions): ChunkManager {
       if (!fires) continue;
       for (let i = 0; i < fires.length; i++) {
         const fire = fires[i];
+        if (fire.hearth === false) continue;
         const dx = fire.x - x;
         const dz = fire.z - z;
         if (dx * dx + dz * dz <= r2) out.push(fire);
@@ -346,5 +361,26 @@ export function createChunkManager(opts: ChunkManagerOptions): ChunkManager {
     return out;
   };
 
-  return { update, heightAt, materialAt, landmarksNear, firesNear, propsNear, stats, dispose };
+  const collide = (x: number, z: number, radius: number): { x: number; z: number } => {
+    const at = { x, z };
+    if (solids.size === 0) return at;
+    const reach = radius + COLLIDER_REACH;
+    for (let pass = 0; pass < SETTLE_PASSES; pass++) {
+      const cx0 = Math.floor((at.x - reach) / CHUNK_SIZE);
+      const cx1 = Math.floor((at.x + reach) / CHUNK_SIZE);
+      const cz0 = Math.floor((at.z - reach) / CHUNK_SIZE);
+      const cz1 = Math.floor((at.z + reach) / CHUNK_SIZE);
+      let hit = false;
+      for (let cz = cz0; cz <= cz1; cz++) {
+        for (let cx = cx0; cx <= cx1; cx++) {
+          const set = solids.get(solidKey(cx, cz));
+          if (set !== undefined && pushOut(set, at, radius)) hit = true;
+        }
+      }
+      if (!hit) break;
+    }
+    return at;
+  };
+
+  return { update, heightAt, materialAt, landmarksNear, firesNear, propsNear, collide, stats, dispose };
 }

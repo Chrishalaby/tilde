@@ -3,6 +3,8 @@ import {
   BufferGeometry,
   FrontSide,
   GLSL3,
+  InterleavedBuffer,
+  InterleavedBufferAttribute,
   Mesh,
   PlaneGeometry,
   ShaderMaterial,
@@ -11,7 +13,10 @@ import {
 import terrainVert from './shaders/terrain.vert.glsl?raw';
 import terrainFrag from './shaders/terrain.frag.glsl?raw';
 import { CHUNK_SIZE, CHUNK_VERTS, FOG_FAR, FOG_NEAR, MATERIAL, SEA_LEVEL, VERTEX_SPACING } from '../config';
+import { ROAD_CHANNELS, ROAD_LENGTH, ROAD_STRIDE } from '../world/roads';
 import type { ChunkData } from '../world/types';
+
+const ROAD_DEFAULTS = { roadMain: [0, 0], roadPath: [0, 0], roadSpur: [0, 0] };
 
 export function buildTerrainGeometry(data: ChunkData): BufferGeometry {
   const n = CHUNK_VERTS;
@@ -53,16 +58,26 @@ export function buildTerrainGeometry(data: ChunkData): BufferGeometry {
     }
   }
 
+  const lanes = new InterleavedBuffer(
+    data.roads !== undefined && data.roads.length >= ROAD_LENGTH
+      ? data.roads.subarray(ROAD_STRIDE, ROAD_LENGTH)
+      : new Float32Array(vertexCount * ROAD_CHANNELS),
+    ROAD_CHANNELS,
+  );
+
   const geometry = new BufferGeometry();
   geometry.setAttribute('position', new BufferAttribute(positions, 3));
   geometry.setAttribute('material', new BufferAttribute(materials, 1));
+  geometry.setAttribute('roadMain', new InterleavedBufferAttribute(lanes, 2, 0));
+  geometry.setAttribute('roadPath', new InterleavedBufferAttribute(lanes, 2, 2));
+  geometry.setAttribute('roadSpur', new InterleavedBufferAttribute(lanes, 2, 4));
   geometry.setIndex(new BufferAttribute(indices, 1));
   geometry.computeBoundingSphere();
   return geometry;
 }
 
 export function createTerrainMaterial(): ShaderMaterial {
-  return new ShaderMaterial({
+  const material = new ShaderMaterial({
     glslVersion: GLSL3,
     vertexShader: terrainVert,
     fragmentShader: terrainFrag,
@@ -80,6 +95,8 @@ export function createTerrainMaterial(): ShaderMaterial {
       uLetterIndex: { value: -1 },
     },
   });
+  Object.assign(material.defaultAttributeValues, ROAD_DEFAULTS);
+  return material;
 }
 
 export function createWaterMesh(size: number): Mesh {

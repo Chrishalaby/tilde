@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CHUNK_SIZE, CHUNK_VERTS, GEN_VERSION, MATERIAL_COUNT, PROP } from '../src/config';
 import { generateChunk } from '../src/world/chunk-gen';
 import { landmarkForRegion, landmarkInChunk } from '../src/world/landmarks';
+import { ROAD_LENGTH } from '../src/world/roads';
 import { createSampler } from '../src/world/sampler';
 import type { ChunkData } from '../src/world/types';
 
@@ -22,11 +23,17 @@ function firstDiff(a: Float32Array | Uint8Array, b: Float32Array | Uint8Array): 
   return -1;
 }
 
+function roadsOf(chunk: ChunkData): Float32Array {
+  expect(chunk.roads).toBeInstanceOf(Float32Array);
+  return chunk.roads as Float32Array;
+}
+
 function expectSameBytes(a: ChunkData, b: ChunkData): void {
   expect(firstDiff(a.heights, b.heights)).toBe(-1);
   expect(firstDiff(a.materials, b.materials)).toBe(-1);
   expect(a.props.length).toBe(b.props.length);
   expect(firstDiff(a.props, b.props)).toBe(-1);
+  expect(firstDiff(roadsOf(a), roadsOf(b))).toBe(-1);
   expect(a.landmark).toEqual(b.landmark);
 }
 
@@ -42,6 +49,7 @@ describe('chunk generation', () => {
     expect(chunk.heights.length).toBe(N * N);
     expect(chunk.materials.length).toBe(N * N);
     expect(chunk.props.length % 4).toBe(0);
+    expect(roadsOf(chunk).length).toBe(ROAD_LENGTH);
     for (let i = 0; i < chunk.heights.length; i++) {
       expect(Number.isFinite(chunk.heights[i])).toBe(true);
       expect(chunk.materials[i]).toBeLessThan(MATERIAL_COUNT);
@@ -67,6 +75,7 @@ describe('chunk generation', () => {
     const a = generateChunk(1, 0, 0, createSampler(1));
     const b = generateChunk(2, 0, 0, createSampler(2));
     expect(firstDiff(a.heights, b.heights)).not.toBe(-1);
+    expect(firstDiff(roadsOf(a), roadsOf(b))).not.toBe(-1);
   });
 
   it('shares border vertices with its neighbours', () => {
@@ -75,13 +84,18 @@ describe('chunk generation', () => {
       const here = generateChunk(SEED, cx, cz, sampler);
       const east = generateChunk(SEED, cx + 1, cz, sampler);
       const south = generateChunk(SEED, cx, cz + 1, sampler);
+      const roads = roadsOf(here);
+      const eastRoads = roadsOf(east);
+      const southRoads = roadsOf(south);
       for (let j = 0; j < N; j++) {
         expect(here.heights[j * N + (N - 1)]).toBe(east.heights[j * N]);
         expect(here.materials[j * N + (N - 1)]).toBe(east.materials[j * N]);
+        expect(roads[j * N + (N - 1)]).toBe(eastRoads[j * N]);
       }
       for (let i = 0; i < N; i++) {
         expect(here.heights[(N - 1) * N + i]).toBe(south.heights[i]);
         expect(here.materials[(N - 1) * N + i]).toBe(south.materials[i]);
+        expect(roads[(N - 1) * N + i]).toBe(southRoads[i]);
       }
     }
   });

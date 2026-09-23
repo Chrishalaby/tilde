@@ -1,5 +1,5 @@
-import { composeLine } from './lines';
-import type { Brain, Intent, Npc, NpcWorld } from './types';
+import { composeLine, replyLine } from './lines';
+import type { Brain, ChatTurn, Intent, Npc, NpcWorld } from './types';
 
 const DAY_START = 0.27;
 const DAY_END = 0.73;
@@ -226,15 +226,33 @@ function decide(npc: Npc, world: NpcWorld, dt: number, rng: () => number): Inten
   return out;
 }
 
+function remember(memory: Memory, line: string): void {
+  memory.recent.push(line);
+  if (memory.recent.length > RECENT_LINES) memory.recent.shift();
+}
+
 function speak(npc: Npc, world: NpcWorld, rng: () => number): string {
   const memory = memoryFor(npc, rng);
   let line = composeLine(npc, world, rng);
   for (let i = 0; i < 8 && memory.recent.indexOf(line) >= 0; i++) {
     line = composeLine(npc, world, rng);
   }
-  memory.recent.push(line);
-  if (memory.recent.length > RECENT_LINES) memory.recent.shift();
+  remember(memory, line);
   return line;
 }
 
-export const localBrain: Brain = { decide, speak };
+function chat(npc: Npc, world: NpcWorld, turn: ChatTurn, rng: () => number): Promise<string> {
+  const memory = memoryFor(npc, rng);
+  const said = new Set<string>(memory.recent);
+  for (let i = 0; i < turn.history.length; i++) {
+    if (turn.history[i].who === 'npc') said.add(turn.history[i].text);
+  }
+  let line = replyLine(npc, world, turn, rng);
+  for (let i = 0; i < 8 && said.has(line); i++) {
+    line = replyLine(npc, world, turn, rng);
+  }
+  remember(memory, line);
+  return Promise.resolve(line);
+}
+
+export const localBrain: Brain = { decide, speak, chat };
