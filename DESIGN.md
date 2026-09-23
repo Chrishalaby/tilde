@@ -1,6 +1,6 @@
 # Tilde: case study and design
 
-A quiet, endless world you walk through, drawn with nothing but one font. This file is the full design in prose: every decision, what was chosen, why, and the exact numbers the build starts from. The illustrated version with the live text-mode landscape is published as an artifact (https://claude.ai/artifact/VQZbo7GVqUMwjftnYArr1d, also served at /design.html).
+A quiet, endless world you walk through, drawn with nothing but one font. This file is the full design in prose: every decision, what was chosen, why, and the exact numbers the build starts from. The illustrated version with the live text-mode landscape is published as an artifact (https://claude.ai/artifact/VQZbo7GVqUMwjftnYArr1d, also served at /design).
 
 Name: Tilde (working title; the tilde is water). One-line: a quiet, endless world you walk through, drawn with one font.
 Pillars: Quiet (no goals, no HUD, no threat). Unsharp (low internal resolution, glyph cells, fog; softness is the beauty). Endless (deterministic infinite world). Unchanging (same seed + same coordinates = same place, forever). One font (the only asset in the repo is one OFL monospace font file; every texture, sound and impulse response is generated).

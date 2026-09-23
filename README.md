@@ -2,7 +2,7 @@
 
 A quiet, endless world you walk through, drawn with nothing but one font.
 
-Live: https://tilde-production-b719.up.railway.app (the design case study is at /design.html).
+Live: https://tilde-production-b719.up.railway.app (the design case study is at /design).
 
 Three dimensions underneath, punctuation on top. Every chunk of terrain is a pure function of the world seed and its coordinates, generated in Web Workers as you approach, so the world is infinite and never changes. The scene is rendered untextured into a small buffer, then a shader picks one glyph per screen cell from a single monospace font. Music, wind, water and the reverb tail are all synthesised. The only asset in the repository is the font.
 
@@ -61,4 +61,4 @@ public/fonts/        IBM Plex Mono Medium (OFL), the only asset
 tests/
 ```
 
-The full case study and design, including every decision and why, lives in [DESIGN.md](DESIGN.md). The illustrated version with the live text-mode landscape is served with the game at `/design.html` and published at https://claude.ai/artifact/VQZbo7GVqUMwjftnYArr1d.
+The full case study and design, including every decision and why, lives in [DESIGN.md](DESIGN.md). The illustrated version with the live text-mode landscape is served with the game at `/design` and published at https://claude.ai/artifact/VQZbo7GVqUMwjftnYArr1d.
