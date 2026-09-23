@@ -50,12 +50,20 @@ export interface ChunkStats {
   workers: number;
 }
 
+export interface PropHit {
+  x: number;
+  z: number;
+  kind: number;
+  scale: number;
+}
+
 export interface ChunkManager {
   update(px: number, pz: number): void;
   heightAt(x: number, z: number): number;
   materialAt(x: number, z: number): number;
   landmarksNear(x: number, z: number, radius: number): Landmark[];
   firesNear(x: number, z: number, radius: number): Array<{ x: number; z: number }>;
+  propsNear(x: number, z: number, radius: number): PropHit[];
   stats(): ChunkStats;
   dispose(): void;
 }
@@ -81,15 +89,8 @@ export function createChunkManager(opts: ChunkManagerOptions): ChunkManager {
       entries.delete(entry.key);
       return;
     }
-    entry.data = {
-      cx: reply.cx,
-      cz: reply.cz,
-      genVersion: reply.genVersion,
-      heights: reply.heights,
-      materials: reply.materials,
-      props: reply.props,
-      landmark: reply.landmark,
-    };
+    const { type: _type, ...data } = reply;
+    entry.data = data;
     entry.state = 'ready';
   };
 
@@ -325,5 +326,25 @@ export function createChunkManager(opts: ChunkManagerOptions): ChunkManager {
     for (const e of Array.from(entries.values())) destroyEntry(e);
   };
 
-  return { update, heightAt, materialAt, landmarksNear, firesNear, stats, dispose };
+  const propsNear = (x: number, z: number, radius: number): PropHit[] => {
+    const out: PropHit[] = [];
+    const r2 = radius * radius;
+    const reach = radius + CHUNK_SIZE;
+    for (const e of entries.values()) {
+      const data = e.data;
+      if (!data) continue;
+      const ccx = (data.cx + 0.5) * CHUNK_SIZE;
+      const ccz = (data.cz + 0.5) * CHUNK_SIZE;
+      if (Math.abs(ccx - x) > reach || Math.abs(ccz - z) > reach) continue;
+      const props = data.props;
+      for (let i = 0; i + 3 < props.length; i += 4) {
+        const dx = props[i] - x;
+        const dz = props[i + 1] - z;
+        if (dx * dx + dz * dz <= r2) out.push({ x: props[i], z: props[i + 1], kind: props[i + 2], scale: props[i + 3] });
+      }
+    }
+    return out;
+  };
+
+  return { update, heightAt, materialAt, landmarksNear, firesNear, propsNear, stats, dispose };
 }
