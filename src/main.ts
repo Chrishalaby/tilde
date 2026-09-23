@@ -1,3 +1,4 @@
+import { LinearSRGBColorSpace } from 'three';
 import { CELL_MAX, CELL_MIN, DAY_LENGTH_S, GEN_VERSION, MATERIAL, SEA_LEVEL } from './config';
 import { randomSeed, seedFromParam, seedToString } from './world/hash';
 import { createSampler } from './world/sampler';
@@ -28,6 +29,11 @@ function findSpawn(sampler: WorldSampler): Spawn {
       const z = Math.sin(a) * r;
       const h = sampler.height(x, z);
       if (h < 5 || h > 45) continue;
+      let steep = false;
+      for (const [ox, oz] of [[9, 0], [-9, 0], [0, 9], [0, -9]]) {
+        if (Math.abs(sampler.height(x + ox, z + oz) - h) > 2.5) steep = true;
+      }
+      if (steep || sampler.moisture(x, z) > 0.12) continue;
       let yaw = 0;
       let bestView = -Infinity;
       for (let d = 0; d < 12; d++) {
@@ -218,7 +224,7 @@ async function boot() {
     return near;
   };
 
-  const frame = (now: number) => {
+  const step = (now: number) => {
     const dt = Math.min(0.1, Math.max(0.001, (now - last) / 1000));
     last = now;
     if (player.drifting) drift.update(dt);
@@ -227,8 +233,8 @@ async function boot() {
     timeOfDay = (timeOfDay + dt / DAY_LENGTH_S) % 1;
 
     const sky = skyAt(timeOfDay);
-    uiRoot.style.setProperty('--paper', '#' + sky.paper.getHexString());
-    uiRoot.style.setProperty('--ink', '#' + sky.ink.getHexString());
+    uiRoot.style.setProperty('--paper', '#' + sky.paper.getHexString(LinearSRGBColorSpace));
+    uiRoot.style.setProperty('--ink', '#' + sky.ink.getHexString(LinearSRGBColorSpace));
 
     const v = player.view;
     camera.position.set(v.x, v.y, v.z);
@@ -272,8 +278,12 @@ async function boot() {
       saveTimer = 0;
       persist();
     }
+  };
+  const frame = (now: number) => {
+    step(now);
     requestAnimationFrame(frame);
   };
+  (window as unknown as { tilde: unknown }).tilde = { renderer, manager, player, sampler, step };
   requestAnimationFrame(frame);
 }
 

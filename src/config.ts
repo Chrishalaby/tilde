@@ -22,14 +22,14 @@ export const CAMERA_LAG = 0.15;
 export const LOOK_SENSITIVITY = 0.0022;
 export const MAX_WADE_DEPTH = 1.2;
 
-export const CELL_W = 10;
-export const CELL_H = 18;
-export const CELL_MIN = [8, 14] as const;
+export const CELL_W = 8;
+export const CELL_H = 14;
+export const CELL_MIN = [6, 11] as const;
 export const CELL_MAX = [14, 26] as const;
 export const SCENE_PX_PER_CELL = 2;
 
 export const DAY_LENGTH_S = 24 * 60;
-export const TWILIGHT_S = 90;
+export const TWILIGHT_S = 158;
 
 export const MATERIAL = {
   GRASS: 0,
@@ -40,9 +40,17 @@ export const MATERIAL = {
   WATER: 5,
   LETTER: 6,
   NONE: 7,
+  TREE: 8,
+  TRUNK: 9,
+  FIRE: 10,
+  FIGURE: 11,
 } as const;
 export type MaterialId = (typeof MATERIAL)[keyof typeof MATERIAL];
-export const MATERIAL_COUNT = 8;
+export const MATERIAL_COUNT = 12;
+
+export const CLOUD_ALTITUDE = 600;
+export const CLOUD_SCALE = 900;
+export const GLYPH_STRENGTH = 0.85;
 
 export const PROP = { TREE: 0, ROCK: 1 } as const;
 

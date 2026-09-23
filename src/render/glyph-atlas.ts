@@ -10,13 +10,17 @@ export const EDGE_GLYPHS = '|-/\\';
 
 export const RAMPS: Record<number, string> = {
   [MATERIAL.GRASS]: " .,':;",
-  [MATERIAL.FOREST]: " .'^YT",
+  [MATERIAL.FOREST]: " .,':;",
   [MATERIAL.STONE]: '.:%#@',
   [MATERIAL.SAND]: ' .:°',
   [MATERIAL.SNOW]: '  .*+',
   [MATERIAL.WATER]: '~-≈_',
   [MATERIAL.LETTER]: 'A',
   [MATERIAL.NONE]: ' ',
+  [MATERIAL.TREE]: " '^YT",
+  [MATERIAL.TRUNK]: '|!',
+  [MATERIAL.FIRE]: '^*&',
+  [MATERIAL.FIGURE]: 'A',
 };
 
 export const ATLAS_COLS = 16;

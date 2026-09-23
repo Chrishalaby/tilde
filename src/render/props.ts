@@ -10,6 +10,7 @@ import {
   Object3D,
   ShaderMaterial,
 } from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { CHUNK_SIZE, CHUNK_VERTS, MATERIAL, PROP, VERTEX_SPACING } from '../config';
 import type { ChunkData } from '../world/types';
 import type { GlyphAtlas } from './glyph-atlas';
@@ -22,13 +23,26 @@ function tagMaterial<T extends BufferGeometry>(geometry: T, material: number): T
   return geometry;
 }
 
-const TREE_CONE = new ConeGeometry(1.2, 4.5, 7, 1);
-TREE_CONE.translate(0, 3.65, 0);
-tagMaterial(TREE_CONE, MATERIAL.FOREST);
+function buildPine(): BufferGeometry {
+  const trunk = new BoxGeometry(0.45, 1.6, 0.45);
+  trunk.translate(0, 0.8, 0);
+  tagMaterial(trunk, MATERIAL.TRUNK);
+  const lower = new ConeGeometry(1.15, 3.0, 6, 1, true);
+  lower.translate(0, 2.8, 0);
+  tagMaterial(lower, MATERIAL.TREE);
+  const upper = new ConeGeometry(0.8, 4.4, 6, 1, true);
+  upper.translate(0, 5.6, 0);
+  tagMaterial(upper, MATERIAL.TREE);
+  const merged = mergeGeometries([trunk, lower, upper], false) as BufferGeometry | null;
+  trunk.dispose();
+  lower.dispose();
+  upper.dispose();
+  if (merged === null) throw new Error('pine geometry could not be merged');
+  merged.computeBoundingSphere();
+  return merged;
+}
 
-const TREE_TRUNK = new BoxGeometry(0.26, 1.6, 0.26);
-TREE_TRUNK.translate(0, 0.8, 0);
-tagMaterial(TREE_TRUNK, MATERIAL.FOREST);
+const PINE = buildPine();
 
 const ROCK = tagMaterial(new IcosahedronGeometry(1, 0), MATERIAL.STONE);
 const STONE_BOX = tagMaterial(new BoxGeometry(1, 1, 1), MATERIAL.STONE);
@@ -77,13 +91,11 @@ export function buildProps(data: ChunkData, material: ShaderMaterial, atlas: Gly
 
   const dummy = new Object3D();
 
-  let cones: InstancedMesh | null = null;
-  let trunks: InstancedMesh | null = null;
+  let pines: InstancedMesh | null = null;
   let rocks: InstancedMesh | null = null;
 
   if (treeCount > 0) {
-    cones = new InstancedMesh(TREE_CONE, material, treeCount);
-    trunks = new InstancedMesh(TREE_TRUNK, material, treeCount);
+    pines = new InstancedMesh(PINE, material, treeCount);
   }
   if (rockCount > 0) {
     rocks = new InstancedMesh(ROCK, material, rockCount);
@@ -103,9 +115,8 @@ export function buildProps(data: ChunkData, material: ShaderMaterial, atlas: Gly
     dummy.scale.setScalar(scale);
     dummy.updateMatrix();
 
-    if (kind === PROP.TREE && cones !== null && trunks !== null) {
-      cones.setMatrixAt(treeAt, dummy.matrix);
-      trunks.setMatrixAt(treeAt, dummy.matrix);
+    if (kind === PROP.TREE && pines !== null) {
+      pines.setMatrixAt(treeAt, dummy.matrix);
       treeAt++;
     } else if (rocks !== null) {
       dummy.scale.set(scale, scale * 0.7, scale);
@@ -115,7 +126,7 @@ export function buildProps(data: ChunkData, material: ShaderMaterial, atlas: Gly
     }
   }
 
-  for (const mesh of [cones, trunks, rocks]) {
+  for (const mesh of [pines, rocks]) {
     if (mesh === null) continue;
     mesh.instanceMatrix.needsUpdate = true;
     mesh.computeBoundingSphere();
@@ -150,14 +161,10 @@ export function buildProps(data: ChunkData, material: ShaderMaterial, atlas: Gly
       instanced.push(ring);
       group.add(ring);
     } else if (landmark.kind === 'tree') {
-      const crown = new Mesh(TREE_CONE, material);
-      crown.scale.setScalar(3);
-      crown.position.set(landmark.x, landmark.y, landmark.z);
-      const stem = new Mesh(TREE_TRUNK, material);
-      stem.scale.setScalar(3);
-      stem.position.set(landmark.x, landmark.y, landmark.z);
-      group.add(crown);
-      group.add(stem);
+      const pine = new Mesh(PINE, material);
+      pine.scale.setScalar(3);
+      pine.position.set(landmark.x, landmark.y, landmark.z);
+      group.add(pine);
     } else if (landmark.kind === 'pool') {
       const poolMaterial = shareUniforms(material, { uIsWater: 1 });
       clones.push(poolMaterial);
@@ -188,6 +195,7 @@ export function buildProps(data: ChunkData, material: ShaderMaterial, atlas: Gly
     }
   }
 
+  group.userData.pines = pines;
   group.userData.dispose = (): void => {
     for (const geometry of geometries) geometry.dispose();
     for (const clone of clones) clone.dispose();

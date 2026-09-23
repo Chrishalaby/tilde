@@ -117,6 +117,11 @@ export function createChunkManager(opts: ChunkManagerOptions): ChunkManager {
     }
   };
 
+  const setPines = (e: Entry, visible: boolean) => {
+    const pines = e.props ? (e.props.userData.pines as Object3D | null | undefined) : null;
+    if (pines) pines.visible = visible;
+  };
+
   const destroyEntry = (e: Entry) => {
     if (e.mesh) {
       scene.remove(e.mesh);
@@ -162,6 +167,7 @@ export function createChunkManager(opts: ChunkManagerOptions): ChunkManager {
     const fz = pz / CHUNK_SIZE - 0.5;
     const prefetchSq = (PREFETCH_RADIUS + 0.5) * (PREFETCH_RADIUS + 0.5);
     const renderSq = (RENDER_RADIUS + 0.5) * (RENDER_RADIUS + 0.5);
+    const treeSq = (RENDER_RADIUS - 1.5) * (RENDER_RADIUS - 1.5);
 
     for (const e of entries.values()) e.wanted = false;
     let desired = 0;
@@ -185,6 +191,7 @@ export function createChunkManager(opts: ChunkManagerOptions): ChunkManager {
         const visible = d2 <= renderSq;
         if (e.mesh) e.mesh.visible = visible;
         if (e.props) e.props.visible = visible;
+        setPines(e, d2 <= treeSq);
       }
     }
 
@@ -227,6 +234,7 @@ export function createChunkManager(opts: ChunkManagerOptions): ChunkManager {
       const visible = best.dist <= renderSq;
       if (best.mesh) best.mesh.visible = visible;
       if (best.props) best.props.visible = visible;
+      setPines(best, best.dist <= treeSq);
       builds++;
     }
   };

@@ -9,7 +9,8 @@ const EXT = CHUNK_VERTS + 2;
 const INV_SPAN = 1 / (2 * VERTEX_SPACING);
 const PROP_CELLS = 21;
 const PROP_CELL = CHUNK_SIZE / PROP_CELLS;
-const TREE_CHANCE = 0.3;
+const TREE_CHANCE_MIN = 0.18;
+const TREE_CHANCE_RANGE = 0.44;
 const ROCK_CHANCE = 0.04;
 const TREE_SCALE_MIN = 0.8;
 const TREE_SCALE_RANGE = 0.6;
@@ -18,6 +19,11 @@ const ROCK_SCALE_RANGE = 1;
 const LANDMARK_CLEARANCE = 6;
 
 const ring = new Float32Array(EXT * EXT);
+
+function smoothstep(edge0: number, edge1: number, x: number): number {
+  const t = Math.min(1, Math.max(0, (x - edge0) / (edge1 - edge0)));
+  return t * t * (3 - 2 * t);
+}
 
 let cachedSeed = 0;
 let cachedSampler: WorldSampler | null = null;
@@ -104,7 +110,8 @@ export function generateChunk(
       let chance: number;
       if (m === MATERIAL.FOREST) {
         kind = PROP.TREE;
-        chance = TREE_CHANCE;
+        const wet = world.moisture(x0 + (gi + 0.5) * PROP_CELL, z0 + (gj + 0.5) * PROP_CELL);
+        chance = TREE_CHANCE_MIN + TREE_CHANCE_RANGE * smoothstep(0.12, 0.4, wet);
       } else if (m === MATERIAL.STONE) {
         kind = PROP.ROCK;
         chance = ROCK_CHANCE;

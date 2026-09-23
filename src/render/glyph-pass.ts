@@ -2,45 +2,42 @@ import {
   BufferAttribute,
   BufferGeometry,
   GLSL3,
+  LinearFilter,
+  LinearMipmapLinearFilter,
   Mesh,
   OrthographicCamera,
   Scene,
   ShaderMaterial,
   Vector2,
-  Vector3,
-  Vector4,
   WebGLRenderer,
   WebGLRenderTarget,
 } from 'three';
 import glyphVert from './shaders/glyph.vert.glsl?raw';
 import glyphFrag from './shaders/glyph.frag.glsl?raw';
-import { EDGE_GLYPHS, GLYPHS, type GlyphAtlas } from './glyph-atlas';
-import type { SkyState } from './sky';
-import { MATERIAL_COUNT } from '../config';
+import { GLYPHS, GLYPH_H, GLYPH_W, type GlyphAtlas } from './glyph-atlas';
 
 export interface GlyphPass {
   setGrid(cols: number, rows: number, cellW: number, cellH: number): void;
-  render(renderer: WebGLRenderer, scene: WebGLRenderTarget, sky: SkyState, time: number, grain: number): void;
+  render(renderer: WebGLRenderer, paint: WebGLRenderTarget, time: number, grain: number): void;
   dispose(): void;
 }
 
+function clamp(value: number, low: number, high: number): number {
+  return Math.min(high, Math.max(low, value));
+}
+
 export function createGlyphPass(atlas: GlyphAtlas): GlyphPass {
+  atlas.texture.generateMipmaps = true;
+  atlas.texture.minFilter = LinearMipmapLinearFilter;
+  atlas.texture.magFilter = LinearFilter;
+  atlas.texture.needsUpdate = true;
+
   const geometry = new BufferGeometry();
   geometry.setAttribute(
     'position',
     new BufferAttribute(new Float32Array([-1, -1, 0, 3, -1, 0, -1, 3, 0]), 3),
   );
   geometry.setAttribute('uv', new BufferAttribute(new Float32Array([0, 0, 2, 0, 0, 2]), 2));
-
-  const inks: Vector3[] = [];
-  for (let i = 0; i < MATERIAL_COUNT; i++) inks.push(new Vector3(0, 0, 0));
-
-  const edges = new Vector4(
-    atlas.index.get(EDGE_GLYPHS[0]) ?? 0,
-    atlas.index.get(EDGE_GLYPHS[1]) ?? 0,
-    atlas.index.get(EDGE_GLYPHS[2]) ?? 0,
-    atlas.index.get(EDGE_GLYPHS[3]) ?? 0,
-  );
 
   const material = new ShaderMaterial({
     glslVersion: GLSL3,
@@ -50,21 +47,16 @@ export function createGlyphPass(atlas: GlyphAtlas): GlyphPass {
     depthWrite: false,
     transparent: false,
     uniforms: {
-      uScene: { value: null },
+      uPaint: { value: null },
       uAtlas: { value: atlas.texture },
-      uRamp: { value: atlas.rampTexture },
       uCells: { value: new Vector2(1, 1) },
       uCellPx: { value: new Vector2(1, 1) },
       uResolution: { value: new Vector2(1, 1) },
       uAtlasCells: { value: new Vector2(atlas.cols, atlas.rows) },
-      uPaper: { value: new Vector3(1, 1, 1) },
-      uInks: { value: inks },
+      uAtlasLod: { value: 0 },
+      uGlyphCount: { value: GLYPHS.length },
       uTime: { value: 0 },
       uGrain: { value: 0.03 },
-      uNight: { value: 0 },
-      uEdgeGlyphs: { value: edges },
-      uGlyphCount: { value: GLYPHS.length },
-      uStarGlyph: { value: atlas.index.get('.') ?? 0 },
     },
   });
 
@@ -90,31 +82,25 @@ export function createGlyphPass(atlas: GlyphAtlas): GlyphPass {
       (material.uniforms.uCells.value as Vector2).set(cols, rows);
     },
 
-    render(
-      renderer: WebGLRenderer,
-      target: WebGLRenderTarget,
-      sky: SkyState,
-      time: number,
-      grain: number,
-    ): void {
+    render(renderer: WebGLRenderer, paint: WebGLRenderTarget, time: number, grain: number): void {
       renderer.getDrawingBufferSize(size);
       const scaleX = size.x / (cols * cellW);
       const scaleY = size.y / (rows * cellH);
+      const cellPxW = Math.max(1, cellW * scaleX);
+      const cellPxH = Math.max(1, cellH * scaleY);
 
       const uniforms = material.uniforms;
-      uniforms.uScene.value = target.texture;
+      uniforms.uPaint.value = paint.texture;
       (uniforms.uResolution.value as Vector2).set(size.x, size.y);
-      (uniforms.uCellPx.value as Vector2).set(cellW * scaleX, cellH * scaleY);
+      (uniforms.uCellPx.value as Vector2).set(cellPxW, cellPxH);
       (uniforms.uCells.value as Vector2).set(cols, rows);
-      (uniforms.uPaper.value as Vector3).set(sky.paper.r, sky.paper.g, sky.paper.b);
+      uniforms.uAtlasLod.value = clamp(
+        0.5 * (Math.log2(GLYPH_W / cellPxW) + Math.log2(GLYPH_H / cellPxH)),
+        0,
+        3,
+      );
       uniforms.uTime.value = time;
       uniforms.uGrain.value = grain;
-      uniforms.uNight.value = sky.night;
-
-      for (let i = 0; i < inks.length; i++) {
-        const colour = sky.inks[i] ?? sky.ink;
-        inks[i].set(colour.r, colour.g, colour.b);
-      }
 
       renderer.setRenderTarget(null);
       renderer.render(scene, camera);

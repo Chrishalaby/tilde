@@ -23,6 +23,7 @@ import {
   SCENE_PX_PER_CELL,
   SEA_LEVEL,
 } from '../config';
+import { createCellPass } from './cell-pass';
 import type { GlyphAtlas } from './glyph-atlas';
 import { createGlyphPass } from './glyph-pass';
 import { skyAt } from './sky';
@@ -59,6 +60,7 @@ export function createRenderer(
     alpha: false,
     stencil: false,
     depth: true,
+    premultipliedAlpha: false,
   });
   renderer.outputColorSpace = LinearSRGBColorSpace;
   renderer.toneMapping = NoToneMapping;
@@ -84,6 +86,7 @@ export function createRenderer(
     generateMipmaps: false,
   });
 
+  const cellPass = createCellPass(atlas);
   const pass = createGlyphPass(atlas);
   const startedAt = performance.now();
   const grain = opts?.grain ?? 0.03;
@@ -107,6 +110,7 @@ export function createRenderer(
     camera.aspect = (cols * cellW) / (rows * cellH);
     camera.updateProjectionMatrix();
 
+    cellPass.setGrid(cols, rows);
     pass.setGrid(cols, rows, cellW, cellH);
   }
 
@@ -134,6 +138,7 @@ export function createRenderer(
     render(timeOfDay: number, time: number, playerX: number, playerZ: number): void {
       const elapsed = (performance.now() - startedAt) / 1000;
       const now = Number.isFinite(time) ? time : elapsed;
+      camera.updateMatrixWorld();
       const sky = skyAt(timeOfDay);
 
       const uniforms = terrainMaterial.uniforms;
@@ -150,7 +155,8 @@ export function createRenderer(
       renderer.render(scene, camera);
       renderer.setRenderTarget(null);
 
-      pass.render(renderer, target, sky, now, grain);
+      cellPass.render(renderer, target, sky, camera, now);
+      pass.render(renderer, cellPass.target, now, grain);
     },
 
     dispose(): void {
@@ -160,6 +166,7 @@ export function createRenderer(
       waterMaterial.dispose();
       terrainMaterial.dispose();
       pass.dispose();
+      cellPass.dispose();
       target.dispose();
       renderer.dispose();
     },

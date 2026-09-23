@@ -34,6 +34,7 @@ const CSS = `
 .tilde-ui.tilde-hidden { display: none; }
 .tilde-ui > .tilde-el { position: absolute; pointer-events: none; margin: 0; }
 .tilde-toast {
+  text-shadow: 0 0 2px var(--paper), 0 0 6px var(--paper), 0 1px 0 var(--paper);
   left: 18px;
   bottom: 18px;
   max-width: 60vw;
@@ -44,6 +45,7 @@ const CSS = `
   transition: opacity 600ms ease;
 }
 .tilde-hint {
+  text-shadow: 0 0 2px var(--paper), 0 0 6px var(--paper), 0 1px 0 var(--paper);
   left: 0;
   right: 0;
   bottom: 12%;
