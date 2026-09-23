@@ -136,7 +136,7 @@ const NOON: Record<number, Row> = {
   [MATERIAL.TREE]: [0x2f4d36, 0x223a2a, 0x152a1c, 0x0f2016],
   [MATERIAL.TRUNK]: [0x4a3a2b, 0x33291f, 0x2a2016, 0x1a140e],
   [MATERIAL.FIRE]: [0xe0893a, 0xe0893a, 0xffe2a6, 0xffe2a6],
-  [MATERIAL.FIGURE]: [0x3c3a38, 0x2a292b, 0xefe8d6, 0xcfc8b8],
+  [MATERIAL.FIGURE]: [0xb8a48c, 0x8a7a68, 0x4a3f34, 0x332c24],
 };
 
 const NIGHT_GLYPH: Record<number, [number, number]> = {

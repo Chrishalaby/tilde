@@ -4,8 +4,9 @@ import { MATERIAL, MATERIAL_COUNT } from '../config';
 const SYMBOLS = " .,'\":;!?*+-_=/\\|()[]{}<>#%&$@^~°≈";
 const DIGITS = '0123456789';
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const LOWER = 'abcdefghijklmnopqrstuvwxyz';
 
-export const GLYPHS = SYMBOLS + DIGITS + LETTERS;
+export const GLYPHS = SYMBOLS + DIGITS + LETTERS + LOWER;
 export const EDGE_GLYPHS = '|-/\\';
 
 export const RAMPS: Record<number, string> = {

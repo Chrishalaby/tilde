@@ -15,6 +15,7 @@ export const REGION_SIZE = 512;
 
 export const EYE_HEIGHT = 1.6;
 export const WALK_SPEED = 2.5;
+export const RUN_SPEED = 5.5;
 export const STROLL_SPEED = 1.2;
 export const ACCEL_TIME = 0.6;
 export const DECEL_TIME = 0.4;

@@ -17,6 +17,7 @@ const TREE_SCALE_RANGE = 0.6;
 const ROCK_SCALE_MIN = 0.5;
 const ROCK_SCALE_RANGE = 1;
 const LANDMARK_CLEARANCE = 6;
+const CASTLE_CLEARANCE = 16;
 
 const ring = new Float32Array(EXT * EXT);
 
@@ -97,7 +98,10 @@ export function generateChunk(
   }
 
   const landmark = landmarkInChunk(seed, cx, cz, world);
-  const clearance = LANDMARK_CLEARANCE * LANDMARK_CLEARANCE;
+  const reach = landmark !== null && landmark.kind === 'castle'
+    ? CASTLE_CLEARANCE
+    : LANDMARK_CLEARANCE;
+  const clearance = reach * reach;
   const salt = mix32(seed, cx, cz, 5);
   const list: number[] = [];
 

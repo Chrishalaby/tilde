@@ -18,10 +18,12 @@ Open the URL Vite prints. Click to look around.
 | Key | Does |
 | --- | --- |
 | W A S D, arrows | walk, turn |
-| Shift | stroll |
+| Shift | run |
+| Ctrl | stroll |
 | F | drift: the walker wanders on its own |
-| M | map of where you have been |
+| M | map |
 | J | journal |
+| I | controls |
 | H | hide overlays |
 | [ ] | glyph cell size |
 | - = | volume |

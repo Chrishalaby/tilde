@@ -48,6 +48,30 @@ const ROCK = tagMaterial(new IcosahedronGeometry(1, 0), MATERIAL.STONE);
 const STONE_BOX = tagMaterial(new BoxGeometry(1, 1, 1), MATERIAL.STONE);
 const LETTER_BOX = tagMaterial(new BoxGeometry(1, 1, 1), MATERIAL.LETTER);
 
+const FIRE_BOX = tagMaterial(new BoxGeometry(1, 1, 1), MATERIAL.FIRE);
+
+const CASTLE_HALF = 11;
+const CASTLE_WALL_H = 4;
+const CASTLE_WALL_T = 1.2;
+const CASTLE_GATE = 4;
+const CASTLE_SINK = 1;
+const CASTLE_SEGMENT = CASTLE_HALF - CASTLE_GATE / 2;
+const TOWER_SIZE = 4;
+const TOWER_H = 9;
+const KEEP_SIZE = 8;
+const KEEP_H = 12;
+const KEEP_OFFSET = 5;
+const TORCH_W = 0.3;
+const TORCH_H = 0.5;
+const POST_H = 1.2;
+const POST_T = 0.18;
+const GATE_TORCH_H = 2.5;
+const CASTLE_STONES = 16;
+const CASTLE_TORCHES = 6;
+const PIT_W = 0.6;
+const PIT_H = 0.3;
+const PIT_OFFSET = 2.4;
+
 const POOL_DISC = new CircleGeometry(2.5, 20);
 POOL_DISC.rotateX(-Math.PI / 2);
 tagMaterial(POOL_DISC, MATERIAL.WATER);
@@ -67,6 +91,27 @@ function heightAt(data: ChunkData, x: number, z: number): number {
   return top + (bottom - top) * tz;
 }
 
+function sunkBlock(
+  data: ChunkData,
+  dummy: Object3D,
+  mesh: InstancedMesh,
+  at: number,
+  x: number,
+  z: number,
+  sx: number,
+  sz: number,
+  base: number,
+  rise: number,
+): void {
+  const floor = Math.min(base, heightAt(data, x, z)) - CASTLE_SINK;
+  const height = Math.max(0.5, base + rise - floor);
+  dummy.position.set(x, floor + height / 2, z);
+  dummy.rotation.set(0, 0, 0);
+  dummy.scale.set(sx, height, sz);
+  dummy.updateMatrix();
+  mesh.setMatrixAt(at, dummy.matrix);
+}
+
 function shareUniforms(base: ShaderMaterial, overrides: Record<string, number>): ShaderMaterial {
   const clone = base.clone();
   const uniforms: Record<string, { value: unknown }> = { ...base.uniforms };
@@ -80,6 +125,7 @@ export function buildProps(data: ChunkData, material: ShaderMaterial, atlas: Gly
   const geometries: BufferGeometry[] = [];
   const clones: ShaderMaterial[] = [];
   const instanced: InstancedMesh[] = [];
+  const fires: Array<{ x: number; y: number; z: number }> = [];
 
   const props = data.props;
   let treeCount = 0;
@@ -144,6 +190,62 @@ export function buildProps(data: ChunkData, material: ShaderMaterial, atlas: Gly
       monolith.scale.set(2, 9, 2);
       monolith.position.set(landmark.x, landmark.y + 4.5, landmark.z);
       group.add(monolith);
+    } else if (landmark.kind === 'castle') {
+      const mx = landmark.x;
+      const mz = landmark.z;
+      const base = landmark.y;
+      const stones = new InstancedMesh(STONE_BOX, material, CASTLE_STONES);
+      const torches = new InstancedMesh(FIRE_BOX, material, CASTLE_TORCHES);
+      let at = 0;
+      const wall = (x: number, z: number, sx: number, sz: number): void => {
+        sunkBlock(data, dummy, stones, at, x, z, sx, sz, base, CASTLE_WALL_H);
+        at++;
+      };
+      const span = CASTLE_HALF * 2;
+      wall(mx, mz - CASTLE_HALF, span, CASTLE_WALL_T);
+      wall(mx - CASTLE_HALF, mz, CASTLE_WALL_T, span);
+      wall(mx + CASTLE_HALF, mz, CASTLE_WALL_T, span);
+      const gateSide = CASTLE_GATE / 2 + CASTLE_SEGMENT / 2;
+      wall(mx - gateSide, mz + CASTLE_HALF, CASTLE_SEGMENT, CASTLE_WALL_T);
+      wall(mx + gateSide, mz + CASTLE_HALF, CASTLE_SEGMENT, CASTLE_WALL_T);
+      sunkBlock(data, dummy, stones, at, mx, mz - KEEP_OFFSET, KEEP_SIZE, KEEP_SIZE, base, KEEP_H);
+      at++;
+
+      let lit = 0;
+      const torch = (x: number, y: number, z: number): void => {
+        dummy.position.set(x, y, z);
+        dummy.rotation.set(0, 0, 0);
+        dummy.scale.set(TORCH_W, TORCH_H, TORCH_W);
+        dummy.updateMatrix();
+        torches.setMatrixAt(lit, dummy.matrix);
+        lit++;
+        dummy.position.set(x, y - TORCH_H / 2 - POST_H / 2, z);
+        dummy.scale.set(POST_T, POST_H, POST_T);
+        dummy.updateMatrix();
+        stones.setMatrixAt(at, dummy.matrix);
+        at++;
+        fires.push({ x, y, z });
+      };
+
+      for (let k = 0; k < 4; k++) {
+        const sx = k === 0 || k === 3 ? -1 : 1;
+        const sz = k < 2 ? -1 : 1;
+        const tx = mx + sx * CASTLE_HALF;
+        const tz = mz + sz * CASTLE_HALF;
+        sunkBlock(data, dummy, stones, at, tx, tz, TOWER_SIZE, TOWER_SIZE, base, TOWER_H);
+        at++;
+        torch(tx, base + TOWER_H + POST_H + TORCH_H / 2, tz);
+      }
+      const gateZ = mz + CASTLE_HALF + CASTLE_WALL_T / 2 + TORCH_W;
+      torch(mx - CASTLE_GATE / 2 - TORCH_W, base + GATE_TORCH_H, gateZ);
+      torch(mx + CASTLE_GATE / 2 + TORCH_W, base + GATE_TORCH_H, gateZ);
+
+      for (const mesh of [stones, torches]) {
+        mesh.instanceMatrix.needsUpdate = true;
+        mesh.computeBoundingSphere();
+        instanced.push(mesh);
+        group.add(mesh);
+      }
     } else if (landmark.kind === 'ring') {
       const ring = new InstancedMesh(STONE_BOX, material, 8);
       for (let k = 0; k < 8; k++) {
@@ -192,10 +294,20 @@ export function buildProps(data: ChunkData, material: ShaderMaterial, atlas: Gly
       shelter.computeBoundingSphere();
       instanced.push(shelter);
       group.add(shelter);
+
+      const pitX = landmark.x;
+      const pitZ = landmark.z + PIT_OFFSET;
+      const pitY = heightAt(data, pitX, pitZ) + PIT_H / 2;
+      const pit = new Mesh(FIRE_BOX, material);
+      pit.scale.set(PIT_W, PIT_H, PIT_W);
+      pit.position.set(pitX, pitY, pitZ);
+      group.add(pit);
+      fires.push({ x: pitX, y: pitY, z: pitZ });
     }
   }
 
   group.userData.pines = pines;
+  group.userData.fires = fires;
   group.userData.dispose = (): void => {
     for (const geometry of geometries) geometry.dispose();
     for (const clone of clones) clone.dispose();

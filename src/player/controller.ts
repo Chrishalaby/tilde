@@ -1,6 +1,6 @@
 import {
   ACCEL_TIME, CAMERA_LAG, DECEL_TIME, EYE_HEIGHT, LOOK_SENSITIVITY, MAX_WADE_DEPTH,
-  SEA_LEVEL, STROLL_SPEED, WALK_SPEED,
+  RUN_SPEED, SEA_LEVEL, STROLL_SPEED, WALK_SPEED,
 } from '../config';
 import { keyCode } from './keys';
 
@@ -24,6 +24,7 @@ export interface PlayerInput {
   strafe: number;
   turn: number;
   stroll: boolean;
+  run: boolean;
 }
 
 export interface Player {
@@ -67,7 +68,7 @@ export function createPlayer(opts: PlayerOptions): Player {
     groundHeight: 0,
     locked: false,
     drifting: false,
-    driftInput: { forward: 0, strafe: 0, turn: 0, stroll: false },
+    driftInput: { forward: 0, strafe: 0, turn: 0, stroll: true, run: false },
     update,
     onFirstLock: (cb) => { firstLockCb = cb; },
     dispose,
@@ -130,7 +131,13 @@ export function createPlayer(opts: PlayerOptions): Player {
     if (keys.has('KeyA')) strafe -= 1;
     if (keys.has('ArrowLeft')) turn += 1;
     if (keys.has('ArrowRight')) turn -= 1;
-    return { forward, strafe, turn, stroll: keys.has('ShiftLeft') || keys.has('ShiftRight') };
+    return {
+      forward,
+      strafe,
+      turn,
+      stroll: keys.has('ControlLeft') || keys.has('ControlRight'),
+      run: keys.has('ShiftLeft') || keys.has('ShiftRight'),
+    };
   };
 
   player.groundHeight = heightAt(pose.x, pose.z);
@@ -141,7 +148,7 @@ export function createPlayer(opts: PlayerOptions): Player {
     pose.yaw += input.turn * TURN_RATE * dt;
 
     const len = Math.hypot(input.forward, input.strafe);
-    const maxSpeed = input.stroll ? STROLL_SPEED : WALK_SPEED;
+    const maxSpeed = input.stroll ? STROLL_SPEED : input.run ? RUN_SPEED : WALK_SPEED;
     let tx = 0;
     let tz = 0;
     if (len > 0) {

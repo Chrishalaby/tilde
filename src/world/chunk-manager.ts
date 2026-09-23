@@ -37,6 +37,12 @@ export interface ChunkManagerOptions {
   onVisit?: (key: string) => void;
 }
 
+export interface FirePoint {
+  x: number;
+  y: number;
+  z: number;
+}
+
 export interface ChunkStats {
   loaded: number;
   visible: number;
@@ -49,6 +55,7 @@ export interface ChunkManager {
   heightAt(x: number, z: number): number;
   materialAt(x: number, z: number): number;
   landmarksNear(x: number, z: number, radius: number): Landmark[];
+  firesNear(x: number, z: number, radius: number): Array<{ x: number; z: number }>;
   stats(): ChunkStats;
   dispose(): void;
 }
@@ -282,6 +289,23 @@ export function createChunkManager(opts: ChunkManagerOptions): ChunkManager {
     return out;
   };
 
+  const firesNear = (x: number, z: number, radius: number): Array<{ x: number; z: number }> => {
+    const out: FirePoint[] = [];
+    const r2 = radius * radius;
+    for (const e of entries.values()) {
+      if (!e.props) continue;
+      const fires = e.props.userData.fires as FirePoint[] | undefined;
+      if (!fires) continue;
+      for (let i = 0; i < fires.length; i++) {
+        const fire = fires[i];
+        const dx = fire.x - x;
+        const dz = fire.z - z;
+        if (dx * dx + dz * dz <= r2) out.push(fire);
+      }
+    }
+    return out;
+  };
+
   const stats = (): ChunkStats => {
     let loaded = 0;
     let visible = 0;
@@ -301,5 +325,5 @@ export function createChunkManager(opts: ChunkManagerOptions): ChunkManager {
     for (const e of Array.from(entries.values())) destroyEntry(e);
   };
 
-  return { update, heightAt, materialAt, landmarksNear, stats, dispose };
+  return { update, heightAt, materialAt, landmarksNear, firesNear, stats, dispose };
 }

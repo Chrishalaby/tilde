@@ -6,12 +6,25 @@ export interface Drift {
   reset(): void;
 }
 
+const TURN_RATE = 0.2;
+const ESCAPE_TURN_RATE = 0.45;
+const RETARGET_MIN = 18;
+const RETARGET_SPAN = 14;
+const BLOCK_COOLDOWN = 2.5;
+const PAUSE_MIN = 45;
+const PAUSE_SPAN = 50;
+const REST_MIN = 7;
+const REST_SPAN = 9;
+const CANDIDATES = [0, 0.25, -0.25, 0.5, -0.5, 0.9, -0.9, 1.3, -1.3, 1.9, -1.9, 2.6, -2.6, Math.PI];
+
 export function createDrift(player: Player, heightAt: (x: number, z: number) => number): Drift {
   let targetYaw = player.pose.yaw;
-  let untilRetarget = 4;
-  let pauseLeft = 0;
-  let untilPause = 30 + Math.random() * 40;
-  let targetPitch = 0;
+  let untilRetarget = RETARGET_MIN;
+  let restLeft = 0;
+  let untilPause = PAUSE_MIN;
+  let blockCooldown = 0;
+  let targetPitch = -0.02;
+  let escaping = false;
 
   const probe = (yaw: number, dist: number): number => {
     const x = player.pose.x - Math.sin(yaw) * dist;
@@ -21,7 +34,7 @@ export function createDrift(player: Player, heightAt: (x: number, z: number) => 
 
   const clear = (yaw: number): boolean => {
     const here = player.groundHeight;
-    for (const d of [12, 24, 40]) {
+    for (const d of [10, 22, 38]) {
       const h = probe(yaw, d);
       if (h < SEA_LEVEL + 0.5) return false;
       if ((h - here) / d > 0.55) return false;
@@ -29,55 +42,79 @@ export function createDrift(player: Player, heightAt: (x: number, z: number) => 
     return true;
   };
 
-  const retarget = () => {
+  const retarget = (rng: number) => {
     const base = player.pose.yaw;
-    const candidates = [0, 0.35, -0.35, 0.8, -0.8, 1.4, -1.4, 2.2, -2.2, Math.PI];
-    for (const c of candidates) {
-      const yaw = base + c + (Math.random() - 0.5) * 0.25;
+    const wander = base + (rng - 0.5) * 1.5;
+    if (clear(wander)) {
+      targetYaw = wander;
+      escaping = false;
+      return;
+    }
+    for (const c of CANDIDATES) {
+      const yaw = base + c + (c === 0 ? 0 : (rng - 0.5) * 0.2);
       if (clear(yaw)) {
         targetYaw = yaw;
+        escaping = Math.abs(c) > 1.2;
         return;
       }
     }
     targetYaw = base + Math.PI;
+    escaping = true;
   };
 
   const update = (dt: number) => {
     const input = player.driftInput;
+    input.strafe = 0;
+    input.stroll = true;
+    input.run = false;
+    input.turn = 0;
+
+    if (blockCooldown > 0) blockCooldown -= dt;
     untilRetarget -= dt;
     if (untilRetarget <= 0) {
-      retarget();
-      untilRetarget = 5 + Math.random() * 7;
+      retarget(Math.random());
+      untilRetarget = RETARGET_MIN + Math.random() * RETARGET_SPAN;
     }
-    if (pauseLeft > 0) {
-      pauseLeft -= dt;
+
+    if (restLeft > 0) {
+      restLeft -= dt;
       input.forward = 0;
-      input.turn = 0;
-      input.stroll = true;
     } else {
       untilPause -= dt;
       if (untilPause <= 0) {
-        pauseLeft = 6 + Math.random() * 9;
-        untilPause = 30 + Math.random() * 40;
-        targetPitch = 0.08 + Math.random() * 0.12;
+        restLeft = REST_MIN + Math.random() * REST_SPAN;
+        untilPause = PAUSE_MIN + Math.random() * PAUSE_SPAN;
+        targetPitch = 0.05 + Math.random() * 0.08;
       } else {
         targetPitch = -0.02;
       }
-      if (!clear(player.pose.yaw)) retarget();
+      if (blockCooldown <= 0 && !clear(player.pose.yaw)) {
+        retarget(Math.random());
+        blockCooldown = BLOCK_COOLDOWN;
+        untilRetarget = RETARGET_MIN + Math.random() * RETARGET_SPAN;
+      }
       input.forward = 1;
-      input.stroll = true;
     }
-    input.strafe = 0;
+
     let diff = targetYaw - player.pose.yaw;
     diff = Math.atan2(Math.sin(diff), Math.cos(diff));
-    player.pose.yaw += diff * Math.min(1, dt * 0.9);
-    player.pose.pitch += (targetPitch - player.pose.pitch) * Math.min(1, dt * 0.6);
+    const rate = escaping ? ESCAPE_TURN_RATE : TURN_RATE;
+    const stepSize = rate * dt;
+    if (Math.abs(diff) <= stepSize) {
+      player.pose.yaw = targetYaw;
+      escaping = false;
+    } else {
+      player.pose.yaw += Math.sign(diff) * stepSize;
+    }
+    player.pose.pitch += (targetPitch - player.pose.pitch) * Math.min(1, dt / 5);
   };
 
   const reset = () => {
     targetYaw = player.pose.yaw;
-    untilRetarget = 2;
-    pauseLeft = 0;
+    untilRetarget = RETARGET_MIN;
+    restLeft = 0;
+    blockCooldown = 0;
+    escaping = false;
   };
 
   return { update, reset };

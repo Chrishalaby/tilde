@@ -1,4 +1,4 @@
-export type LandmarkKind = 'letter' | 'ring' | 'tree' | 'pool' | 'shelter';
+export type LandmarkKind = 'letter' | 'castle' | 'ring' | 'tree' | 'pool' | 'shelter';
 
 export interface Landmark {
   kind: LandmarkKind;
