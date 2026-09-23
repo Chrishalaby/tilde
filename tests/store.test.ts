@@ -100,7 +100,7 @@ describe('store with a localStorage stub', () => {
     const stub = install();
     const settings: Settings = { cellW: 12, cellH: 22, volume: 0.35, grain: false, headBob: false };
     saveSettings(settings);
-    expect(stub.getItem('tilde.settings.v2')).toBeTypeOf('string');
+    expect(stub.getItem('tilde.settings.v3')).toBeTypeOf('string');
     expect(loadSettings()).toEqual(settings);
   });
 
@@ -121,9 +121,9 @@ describe('store with a localStorage stub', () => {
 
   it('falls back to defaults when the stored value is corrupt', () => {
     const stub = install();
-    stub.setItem('tilde.settings.v2', '{not json');
+    stub.setItem('tilde.settings.v3', '{not json');
     expect(loadSettings()).toEqual(DEFAULT_SETTINGS);
-    stub.setItem('tilde.settings.v2', '"nope"');
+    stub.setItem('tilde.settings.v3', '"nope"');
     expect(loadSettings()).toEqual(DEFAULT_SETTINGS);
     stub.setItem('tilde.world', '{"seed":"x"}');
     expect(loadWorld()).toBeNull();
@@ -131,7 +131,7 @@ describe('store with a localStorage stub', () => {
 
   it('keeps known fields when unknown ones are stored', () => {
     const stub = install();
-    stub.setItem('tilde.settings.v2', JSON.stringify({ cellW: 9, junk: true }));
+    stub.setItem('tilde.settings.v3', JSON.stringify({ cellW: 9, junk: true }));
     const loaded = loadSettings();
     expect(loaded.cellW).toBe(9);
     expect(loaded.cellH).toBe(DEFAULT_SETTINGS.cellH);

@@ -23,8 +23,8 @@ export const CAMERA_LAG = 0.15;
 export const LOOK_SENSITIVITY = 0.0022;
 export const MAX_WADE_DEPTH = 1.2;
 
-export const CELL_W = 5;
-export const CELL_H = 9;
+export const CELL_W = 3;
+export const CELL_H = 5;
 export const CELL_MIN = [3, 5] as const;
 export const CELL_MAX = [14, 26] as const;
 export const SCENE_PX_PER_CELL = 2;
