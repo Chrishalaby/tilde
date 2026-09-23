@@ -31,10 +31,10 @@ interface Entry {
 }
 
 function population(kind: string): number {
-  if (kind === 'shelter' || kind === 'ring') return 2;
-  if (kind === 'castle') return 4;
-  if (kind === 'letter') return 1;
-  if (kind === 'tree' || kind === 'pool') return 0;
+  if (kind === 'shelter' || kind === 'ring') return 3;
+  if (kind === 'castle') return 6;
+  if (kind === 'letter') return 2;
+  if (kind === 'pool' || kind === 'tree') return 0;
   return 1;
 }
 

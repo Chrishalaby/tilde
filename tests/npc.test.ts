@@ -173,8 +173,8 @@ describe('npc manager', () => {
     const manager = createNpcManager(SEED, world, {});
     manager.update(0.1);
     const ids = manager.snapshots().map((s) => s.id).sort();
-    expect(ids).toEqual(['0,0:0', '1,0:0', '1,0:1']);
-    expect(manager.count()).toBe(3);
+    expect(ids).toEqual(['0,0:0', '0,0:1', '1,0:0', '1,0:1', '1,0:2']);
+    expect(manager.count()).toBe(5);
     manager.dispose();
     expect(manager.count()).toBe(0);
   });
@@ -254,7 +254,7 @@ describe('npc manager', () => {
     const manager = createNpcManager(SEED, world, {});
     for (let step = 0; step < 3000; step++) manager.update(0.1);
     const shots = manager.snapshots();
-    expect(shots.length).toBe(3);
+    expect(shots.length).toBe(5);
     for (let i = 0; i < shots.length; i++) {
       let near = Infinity;
       for (let f = 0; f < FIRES.length; f++) {
@@ -279,7 +279,7 @@ describe('npc manager', () => {
     state.px = 5;
     state.pz = 5;
     for (let step = 0; step < 30; step++) manager.update(0.1);
-    expect(manager.count()).toBe(3);
+    expect(manager.count()).toBe(5);
     const after = manager.snapshots().filter((s) => s.id === '0,0:0')[0];
     expect(after.name).toBe(before.name);
     expect(after.glyph).toBe(before.glyph);
@@ -299,7 +299,7 @@ describe('npc manager', () => {
     expect(speakerOf(manager)).toBe('\u2026');
     await flush();
     expect(speakerOf(manager)).toBe('hello there');
-    expect(said).toEqual(['hello there', 'hello there', 'hello there']);
+    expect(said).toEqual(new Array(manager.count()).fill('hello there'));
     manager.dispose();
   });
 
@@ -317,7 +317,7 @@ describe('npc manager', () => {
     expect(speakerOf(manager)).toBe('\u2026');
     await flush();
     expect(speakerOf(manager)).toBe('the local words');
-    expect(said).toEqual(['the local words', 'the local words', 'the local words']);
+    expect(said).toEqual(new Array(manager.count()).fill('the local words'));
     manager.dispose();
   });
 
@@ -339,7 +339,7 @@ describe('npc manager', () => {
     state.tod = 0.5;
     const manager = createNpcManager(SEED, world, {});
     manager.update(1 / 60);
-    expect(manager.count()).toBe(30);
+    expect(manager.count()).toBe(45);
     for (let i = 0; i < 600; i++) manager.update(1 / 60);
     const iterations = 4000;
     const start = performance.now();

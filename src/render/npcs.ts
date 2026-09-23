@@ -9,18 +9,29 @@ export interface NpcRenderer {
 }
 
 const FIGURE_W = 0.5;
-const FIGURE_H = 1.7;
+const FIGURE_H = 1.8;
 const FIGURE_D = 0.35;
 const FIGURE_LIFT = 0.85;
 const FIGURE_MATERIAL = MATERIAL.FIGURE;
+const LANTERN_W = 0.26;
+const LANTERN_H = 0.34;
+const LANTERN_LIFT = 0.35;
+const LANTERN_SIDE = 0.34;
 
-function figureGeometry(): BoxGeometry {
-  const geometry = new BoxGeometry(FIGURE_W, FIGURE_H, FIGURE_D);
+function tagged(geometry: BoxGeometry, id: number): BoxGeometry {
   const count = geometry.getAttribute('position').count;
   const values = new Float32Array(count);
-  values.fill(FIGURE_MATERIAL);
+  values.fill(id);
   geometry.setAttribute('material', new BufferAttribute(values, 1));
   return geometry;
+}
+
+function figureGeometry(): BoxGeometry {
+  return tagged(new BoxGeometry(FIGURE_W, FIGURE_H, FIGURE_D), FIGURE_MATERIAL);
+}
+
+function lanternGeometry(): BoxGeometry {
+  return tagged(new BoxGeometry(LANTERN_W, LANTERN_H, LANTERN_W), MATERIAL.FIRE);
 }
 
 function glyphIndex(atlas: GlyphAtlas, glyph: string): number {
@@ -40,6 +51,7 @@ function withGlyph(base: ShaderMaterial, glyph: number): ShaderMaterial {
 
 interface Entry {
   mesh: Mesh;
+  lamp: Mesh;
   material: ShaderMaterial;
   stamp: number;
 }
@@ -50,11 +62,13 @@ export function createNpcRenderer(
   atlas: GlyphAtlas,
 ): NpcRenderer {
   const geometry = figureGeometry();
+  const lantern = lanternGeometry();
   const entries = new Map<string, Entry>();
   let stamp = 0;
 
   const drop = (entry: Entry): void => {
     scene.remove(entry.mesh);
+    scene.remove(entry.lamp);
     entry.material.dispose();
   };
 
@@ -70,7 +84,10 @@ export function createNpcRenderer(
     mesh.matrixAutoUpdate = false;
     mesh.rotation.order = 'YXZ';
     scene.add(mesh);
-    return { mesh, material: figureMaterial, stamp };
+    const lamp = new Mesh(lantern, material);
+    lamp.matrixAutoUpdate = false;
+    scene.add(lamp);
+    return { mesh, lamp, material: figureMaterial, stamp };
   };
 
   const update = (snapshots: NpcSnapshot[]): void => {
@@ -87,6 +104,13 @@ export function createNpcRenderer(
       mesh.position.set(snapshot.x, snapshot.y + FIGURE_LIFT, snapshot.z);
       mesh.rotation.y = snapshot.yaw;
       mesh.updateMatrix();
+      const lamp = entry.lamp;
+      lamp.position.set(
+        snapshot.x + Math.cos(snapshot.yaw) * LANTERN_SIDE,
+        snapshot.y + FIGURE_LIFT + LANTERN_LIFT,
+        snapshot.z - Math.sin(snapshot.yaw) * LANTERN_SIDE,
+      );
+      lamp.updateMatrix();
     }
     entries.forEach(sweep);
   };
@@ -95,6 +119,7 @@ export function createNpcRenderer(
     entries.forEach(drop);
     entries.clear();
     geometry.dispose();
+    lantern.dispose();
   };
 
   return { update, dispose };
