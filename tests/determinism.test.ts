@@ -115,13 +115,18 @@ describe('chunk generation', () => {
           expect(x).toBeLessThan(x0 + CHUNK_SIZE);
           expect(z).toBeGreaterThanOrEqual(z0);
           expect(z).toBeLessThan(z0 + CHUNK_SIZE);
-          expect(kind === PROP.TREE || kind === PROP.ROCK).toBe(true);
+          expect(Number.isInteger(kind)).toBe(true);
+          expect(kind).toBeGreaterThanOrEqual(PROP.TREE);
+          expect(kind).toBeLessThanOrEqual(PROP.STUMPS);
           if (kind === PROP.TREE) {
             expect(scale).toBeGreaterThanOrEqual(0.8);
             expect(scale).toBeLessThanOrEqual(1.4);
-          } else {
+          } else if (kind === PROP.ROCK) {
             expect(scale).toBeGreaterThanOrEqual(0.5);
             expect(scale).toBeLessThanOrEqual(1.5);
+          } else {
+            expect(scale).toBeGreaterThanOrEqual(0.85);
+            expect(scale).toBeLessThanOrEqual(1.2);
           }
           expect(sampler.height(x, z)).toBeGreaterThan(-2);
           if (chunk.landmark) {
@@ -169,7 +174,7 @@ describe('landmarks', () => {
     }
   });
 
-  it('appears in roughly one region in nine', () => {
+  it('appears in roughly one region in five', () => {
     const sampler = createSampler(SEED);
     let marks = 0;
     let regions = 0;
@@ -179,8 +184,8 @@ describe('landmarks', () => {
         if (landmarkForRegion(SEED, rx, rz, sampler)) marks++;
       }
     }
-    expect(marks / regions).toBeGreaterThan(0.03);
-    expect(marks / regions).toBeLessThan(0.13);
+    expect(marks / regions).toBeGreaterThan(0.1);
+    expect(marks / regions).toBeLessThan(0.3);
   });
 
   it('sits above sea level with a valid kind and letter', () => {

@@ -3,15 +3,15 @@ import { hash01, mix32 } from './hash';
 import { regionKey } from './types';
 import type { Landmark, LandmarkKind, WorldSampler } from './types';
 
-const LANDMARK_CHANCE = 1 / 9;
+const LANDMARK_CHANCE = 1 / 5;
 const SEARCH_STEPS = 9;
 const SEARCH_SPACING = 25;
 const STONE_SLOPE = 0.85;
 const PROBE = 2;
 
 const KIND_WEIGHTS: ReadonlyArray<readonly [LandmarkKind, number]> = [
-  ['letter', 0.52],
-  ['castle', 0.1],
+  ['letter', 0.42],
+  ['castle', 0.2],
   ['ring', 0.12],
   ['tree', 0.1],
   ['pool', 0.08],

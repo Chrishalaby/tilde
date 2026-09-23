@@ -1,11 +1,11 @@
 import { LinearSRGBColorSpace } from 'three';
-import { CELL_MAX, CELL_MIN, DAY_LENGTH_S, GEN_VERSION, MATERIAL, REGION_SIZE, SEA_LEVEL } from './config';
+import { CELL_MAX, CELL_MIN, DAY_LENGTH_S, EYE_HEIGHT, GEN_VERSION, MATERIAL, REGION_SIZE, SEA_LEVEL } from './config';
 import { randomSeed, seedFromParam, seedToString } from './world/hash';
 import { createSampler } from './world/sampler';
 import { landmarkForRegion } from './world/landmarks';
 import { materialFor } from './world/biomes';
 import { createChunkManager } from './world/chunk-manager';
-import type { WorldSampler } from './world/types';
+import type { Landmark, WorldSampler } from './world/types';
 import { buildGlyphAtlas } from './render/glyph-atlas';
 import { createRenderer } from './render/renderer';
 import { skyAt } from './render/sky';
@@ -30,8 +30,10 @@ interface Spawn { x: number; z: number; yaw: number; pitch: number }
 
 let spawnSeed = 0;
 
-function landmarkWithin(sampler: WorldSampler, x: number, z: number, radius: number): boolean {
+function landmarkWithin(sampler: WorldSampler, x: number, z: number, radius: number): Landmark | null {
   const seen = new Set<string>();
+  let best: Landmark | null = null;
+  let bestDist = radius;
   for (const [ox, oz] of [[0, 0], [radius, 0], [-radius, 0], [0, radius], [0, -radius]]) {
     const rx = Math.floor((x + ox) / REGION_SIZE);
     const rz = Math.floor((z + oz) / REGION_SIZE);
@@ -39,9 +41,27 @@ function landmarkWithin(sampler: WorldSampler, x: number, z: number, radius: num
     if (seen.has(key)) continue;
     seen.add(key);
     const lm = landmarkForRegion(spawnSeed, rx, rz, sampler);
-    if (lm && Math.hypot(lm.x - x, lm.z - z) <= radius) return true;
+    if (!lm) continue;
+    const d = Math.hypot(lm.x - x, lm.z - z);
+    if (d <= bestDist) {
+      bestDist = d;
+      best = lm;
+    }
   }
-  return false;
+  return best;
+}
+
+function visible(sampler: WorldSampler, x: number, z: number, eye: number, lm: Landmark): boolean {
+  const top = lm.y + 8;
+  const steps = 14;
+  for (let i = 1; i < steps; i++) {
+    const f = i / steps;
+    const sx = x + (lm.x - x) * f;
+    const sz = z + (lm.z - z) * f;
+    const line = eye + (top - eye) * f;
+    if (sampler.height(sx, sz) > line - 1) return false;
+  }
+  return true;
 }
 
 function findSpawn(sampler: WorldSampler): Spawn {
@@ -61,9 +81,18 @@ function findSpawn(sampler: WorldSampler): Spawn {
         if (Math.abs(sampler.height(x + ox, z + oz) - h) > 2.5) steep = true;
       }
       if (steep || sampler.moisture(x, z) > 0.12) continue;
-      if (ring < 90 && !landmarkWithin(sampler, x, z, 330)) continue;
-      let yaw = 0;
+      const near = landmarkWithin(sampler, x, z, 330);
+      if (ring < 90 && !near) continue;
       let bestView = -Infinity;
+      if (near) {
+        const flat = Math.hypot(near.x - x, near.z - z);
+        const rise = near.y + 4 - (h + EYE_HEIGHT);
+        const aim = Math.atan2(rise, Math.max(1, flat));
+        if (ring < 110 && (Math.abs(aim) > 0.38 || !visible(sampler, x, z, h + EYE_HEIGHT, near))) continue;
+        best = { x, z, yaw: Math.atan2(x - near.x, z - near.z), pitch: Math.max(-0.3, Math.min(0.45, aim)) };
+        break;
+      }
+      let yaw = 0;
       for (let d = 0; d < 12; d++) {
         const y = (d / 12) * Math.PI * 2;
         const hx = x - Math.sin(y) * 220;

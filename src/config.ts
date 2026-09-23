@@ -53,7 +53,18 @@ export const CLOUD_ALTITUDE = 600;
 export const CLOUD_SCALE = 900;
 export const GLYPH_STRENGTH = 0.85;
 
-export const PROP = { TREE: 0, ROCK: 1 } as const;
+export const PROP = {
+  TREE: 0,
+  ROCK: 1,
+  WRECK: 2,
+  CAIRN: 3,
+  COLD_FIRE: 4,
+  FALLEN: 5,
+  STEPPING: 6,
+  DOOR: 7,
+  STUMPS: 8,
+} as const;
+export type PropId = (typeof PROP)[keyof typeof PROP];
 
 export const WORKER_MIN = 2;
 export const WORKER_MAX = 4;
