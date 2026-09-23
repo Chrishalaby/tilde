@@ -164,3 +164,39 @@ export function createOverlay(root: HTMLElement): Overlay;
 Everything drawn as text in the page font (IBM Plex Mono), in the paper/ink palette using CSS variables `--paper` and `--ink` on `root` (the renderer's caller sets these each frame from sky). Toast: bottom-left tiny text that fades after `ms` (default 4000). Hint: one centred line near the bottom (used for "click to look around"). Journal: a centred panel showing `A B C … Z` with undiscovered letters as `·`, and a line `n of 26`. Map: a centred panel of about 41×21 characters where each character is one chunk, `.` for visited, the letter for a discovery, `@` for the player at the centre; unknown chunks blank. Panels are `pointer-events: none`, all text, no borders except a hairline in the ink colour at 30% opacity. No emoji, no icons.
 
 ## Owned by the integrator (do not write these): `src/world/chunk-manager.ts`, `src/player/*`, `src/main.ts`.
+
+## src/npc (owner: npc agent)
+
+People in Tilde are lowercase letters. Landmarks are capitals; the villagers who live near them are lowercase glyphs that walk, rest by fires at night, and talk when you come close. They have a local mind: a seeded personality, a daily routine, knowledge of the world (they can point you toward landmarks you have not found), and a small generative grammar for what they say. The mind is behind an interface so a language-model brain can be plugged in later.
+
+### `src/npc/types.ts`
+```ts
+import type { Landmark } from '../world/types';
+export type NpcState = 'idle' | 'wander' | 'return' | 'rest' | 'approach' | 'talk';
+export type Temperament = 'curious' | 'quiet' | 'wistful' | 'cheerful';
+export interface Npc { id: string; name: string; glyph: string; temperament: Temperament; homeKey: string; homeX: number; homeZ: number; x: number; z: number; y: number; yaw: number; speed: number; state: NpcState; speaking: string | null; speakUntil: number; }
+export interface NpcSnapshot { id: string; name: string; glyph: string; x: number; y: number; z: number; yaw: number; state: NpcState; speaking: string | null; }
+export interface PlayerView { x: number; z: number; yaw: number; lettersFound: ReadonlySet<string>; }
+export interface NpcWorld { heightAt(x: number, z: number): number; materialAt(x: number, z: number): number; timeOfDay(): number; player(): PlayerView; landmarksNear(x: number, z: number, radius: number): Landmark[]; discovered(key: string): boolean; fires(): Array<{ x: number; z: number }>; }
+export interface Intent { moveX: number; moveZ: number; state: NpcState; }
+export interface Brain { decide(npc: Npc, world: NpcWorld, dt: number, rng: () => number): Intent; speak(npc: Npc, world: NpcWorld, rng: () => number): string; }
+```
+
+### `src/npc/names.ts`
+`export function nameFor(seed: number, salt: number): string` — two or three syllables from a small consonant/vowel table, capitalised, deterministic (use `mix32`/`hash01` from `../world/hash`).
+
+### `src/npc/lines.ts`
+`export function composeLine(npc: Npc, world: NpcWorld, rng: () => number): string`. Lowercase, no exclamation marks, one sentence, under 90 characters. Sources of content, chosen by temperament and by what is true right now: time of day (dawn, morning, noon, dusk, night); the material under the player (grass, forest, stone, sand, snow, water); a hint about the nearest landmark within 900 m that the player has not discovered (direction as one of eight compass words computed from the npc's position, distance rounded to "close", "a short walk", "a long walk", "far", and whether there is water between here and there by sampling `heightAt` at 8 points along the line); the npc's own home (its letter, if home is a letter monolith: "the big letter behind me is the only one i know"); the count of letters the player has found ("you have seen n of the letters"); and a few temperament-flavoured idle lines. Never explain the game. Never mention keys or controls. Compass words: north is negative z, east is positive x.
+
+### `src/npc/brain.ts`
+`export const localBrain: Brain`. Routine by `world.timeOfDay()`: day (0.27 to 0.73) → wander within 60 m of home in unhurried legs with 4 to 12 s pauses, never stepping onto water (`heightAt` < 0.5) or slopes steeper than 0.9 rise over run, turning away when blocked; dusk → `return` toward home; night → `rest` near the nearest fire within 40 m of home if any, otherwise at home; if the player is within 14 m during the day and the npc is not resting → `approach` to 2.6 m, then `talk` once (the manager calls `brain.speak`), then a 45 s cooldown before it will approach the same player again. Movement speeds 0.7 to 1.3 m/s per npc. `decide` returns the intent; the manager applies it.
+
+### `src/npc/manager.ts`
+```ts
+export interface NpcManager { update(dt: number): void; snapshots(): NpcSnapshot[]; count(): number; dispose(): void; }
+export function createNpcManager(seed: number, world: NpcWorld, opts: { brain?: Brain; onSpeak?: (npc: NpcSnapshot, line: string) => void }): NpcManager;
+```
+Population, deterministic from the seed: every landmark of kind `shelter` or `ring` hosts 2 villagers, `castle` hosts 4 (the castle kind is being added; treat any unknown kind as hosting 1), `letter` hosts 1, `tree` and `pool` host 0. Villagers are created when their home landmark is within 700 m of the player (the manager queries `world.landmarksNear(player, 700)` at most every 2 s) and removed when it is farther than 900 m; a villager's position is simulated only within 350 m of the player, otherwise it is parked at home. Ids are `${landmark.regionKey}:${index}`, so a villager is the same person every time you return. `y` is `heightAt(x, z)`. `speaking` holds the current line for 6 s after `talk`, then null. `snapshots()` returns cheap copies for the renderer. Keep the whole update under 0.3 ms for 30 villagers.
+
+### `tests/npc.test.ts`
+Vitest with a stub world (flat land at height 5 with a water strip at x > 100, one letter landmark at the origin, one undiscovered landmark 400 m north-east): determinism (same seed → same names, glyphs and first line); nobody ever stands on water after 600 simulated seconds at dt 0.1; during the day a villager approaches a player standing 10 m away and speaks exactly once within 60 s, then does not speak again within the cooldown; at night villagers are within 3 m of a fire when one exists; `composeLine` produces a hint containing "north-east" and "water" for the stub; all lines are lowercase and under 90 characters.

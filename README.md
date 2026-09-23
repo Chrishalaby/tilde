@@ -36,7 +36,22 @@ npm run build
 npm start
 ```
 
-`npm start` serves `dist/` on `$PORT` (default 4173). Any static host works; no backend exists.
+`npm start` runs the small Node server in `server/` on `$PORT` (default 4173): it serves `dist/` with clean URLs (`/` and `/design`), long-lived caching for hashed assets, and the one endpoint the villagers use.
+
+## Villager speech
+
+Villagers speak from a local grammar built into the game: a few hundred lines assembled from the time of day, the ground under your feet, what they know about landmarks you have not found, and their own temperament. That is the default and it needs nothing.
+
+If `OPENAI_API_KEY` is set on the server, villagers are voiced by an OpenAI model instead (`gpt-5-mini` by default; set `OPENAI_MODEL` to choose another). The browser never sees the key: it posts the same handful of facts the grammar uses to `/api/npc/speak`, and the server makes the call. Requests are rate limited per visitor, the server answers `{ "fallback": true }` whenever it cannot or will not answer, and the game quietly falls back to the local grammar — so a missing key, a rate limit or a slow reply all just sound like the old villagers.
+
+Set the key in Railway under the service's Variables tab, or keep it in a local `.env` you export before starting:
+
+```
+export $(grep -v '^#' .env | xargs)
+npm run build && npm start
+```
+
+That runs the same server locally on port 4173. `GET /api/health` reports which voice is in use.
 
 ## Test
 
@@ -57,7 +72,9 @@ src/
   audio/             engine, scheduler, composer, ambience, reverb
   state/             localStorage and IndexedDB
   ui/                text-only overlays
+  npc/               villagers: names, routines, local grammar, remote voice
 public/fonts/        IBM Plex Mono Medium (OFL), the only asset
+server/index.mjs     static server plus the villager speech endpoint
 tests/
 ```
 
