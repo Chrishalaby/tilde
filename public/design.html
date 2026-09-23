@@ -1,0 +1,1475 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"></head><body><title>Tilde</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;1,7..72,400&display=swap">
+<style>
+:root{
+  --paper:#EBE9E2; --plate:#E1DFD7; --ink:#26292A; --muted:#6B7070; --rule:#CBC9C0; --accent:#5E7466; --accent-ink:#3F5546;
+  --grass:#68796C; --forest:#4F5F52; --stone:#7A746C; --sand:#A8956A; --snow:#969B9E; --water:#6A7F8F;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --serif:Literata,Charter,Georgia,"Times New Roman",serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#1A1C1B; --plate:#212423; --ink:#D6D4CC; --muted:#8E928D; --rule:#34383A; --accent:#8FA593; --accent-ink:#A9BDAC;
+    --grass:#8A9C8E; --forest:#6F836F; --stone:#9A948C; --sand:#B9A784; --snow:#B9BEC0; --water:#8AA1B2;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#1A1C1B; --plate:#212423; --ink:#D6D4CC; --muted:#8E928D; --rule:#34383A; --accent:#8FA593; --accent-ink:#A9BDAC;
+  --grass:#8A9C8E; --forest:#6F836F; --stone:#9A948C; --sand:#B9A784; --snow:#B9BEC0; --water:#8AA1B2;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:17px;line-height:1.6;padding-inline:20px;padding-block:0 120px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1040px;margin:0 auto}
+a{color:var(--accent-ink);text-decoration-color:var(--rule);text-underline-offset:3px}
+a:hover{text-decoration-color:currentColor}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+p,ul,ol,dl{max-width:66ch}
+h1,h2,h3,h4{text-wrap:balance;margin:0}
+h1{font-family:var(--mono);font-weight:500;font-size:clamp(56px,9vw,112px);line-height:.95;letter-spacing:-.03em;margin-top:56px}
+h1 .t{color:var(--accent)}
+.lede{font-size:clamp(19px,2.2vw,23px);line-height:1.45;max-width:30em;margin-top:24px}
+.meta{font-family:var(--mono);font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px 24px;margin-top:20px}
+.meta b{font-weight:500;color:var(--ink)}
+h2{font-family:var(--mono);font-weight:500;font-size:24px;letter-spacing:-.01em;margin-top:96px;padding-top:20px;border-top:1px solid var(--rule)}
+h2 + p{margin-top:16px}
+h3{font-family:var(--serif);font-weight:500;font-size:21px;margin-top:44px}
+h4{font-family:var(--mono);font-weight:500;font-size:14px;letter-spacing:.02em;margin-top:28px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px}
+.toc{font-family:var(--mono);font-size:14px;columns:2;column-gap:40px;padding:0;margin:20px 0 0;list-style:none;max-width:62ch}
+.toc li{break-inside:avoid;padding:5px 0;border-bottom:1px solid var(--rule)}
+.toc a{text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media (max-width:560px){.toc{columns:1}}
+.plate{background:var(--plate);border:1px solid var(--rule);padding:16px;margin:28px 0}
+.hero{margin-top:48px;padding:0;overflow:hidden;background:#EBE9E2;border:1px solid var(--rule)}
+.hero canvas{display:block;width:100%;height:auto;image-rendering:auto}
+.hero pre{margin:0;font-family:var(--mono);font-size:clamp(4.2px,1.01vw,10.4px);line-height:1.38;color:#26292A;background:#EBE9E2;padding:8px;overflow:hidden;white-space:pre}
+.hero .g-water{color:#6A7F8F}.hero .g-grass{color:#68796C}.hero .g-forest{color:#4F5F52}.hero .g-stone{color:#7A746C}.hero .g-sand{color:#A8956A}.hero .g-snow{color:#969B9E}.hero .g-ink{color:#26292A}
+.hero .f1{opacity:.85}.hero .f2{opacity:.65}.hero .f3{opacity:.45}.hero .f4{opacity:.28}
+.hero-cap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 20px;font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:10px}
+.pillars{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin:32px 0;max-width:none}
+.pillars > div{background:var(--paper);padding:16px}
+.pillars b{font-family:var(--mono);font-weight:500;font-size:14px;display:block;margin-bottom:6px}
+.pillars p{font-size:15px;margin:0;color:var(--muted)}
+.decision{border-top:1px solid var(--rule);padding-top:12px;margin-top:40px;max-width:none}
+.decision h3{margin-top:0;font-size:20px}
+.decision h3 .n{font-family:var(--mono);font-weight:500;font-size:13px;color:var(--muted);margin-right:12px;letter-spacing:.04em}
+.dgrid{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px 20px;margin-top:14px;max-width:none}
+.dgrid dt{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding-top:4px}
+.dgrid dd{margin:0;max-width:66ch}
+.dgrid dd.choice{font-weight:500;border-left:3px solid var(--accent);padding-left:12px}
+.dgrid ul{margin:0;padding-left:1.1em}
+@media (max-width:560px){.dgrid{grid-template-columns:1fr;gap:4px 0}.dgrid dt{padding-top:12px}}
+figure{margin:36px 0;max-width:none}
+figure svg{max-width:100%;height:auto;display:block;color:var(--ink)}
+figcaption{font-family:var(--mono);font-size:13px;color:var(--muted);margin-top:10px;max-width:70ch;line-height:1.5}
+.scroll{overflow-x:auto;max-width:100%}
+table{border-collapse:collapse;font-family:var(--mono);font-size:13.5px;width:100%;margin:20px 0;font-variant-numeric:tabular-nums}
+th,td{text-align:left;vertical-align:top;padding:8px 12px 8px 0;border-bottom:1px solid var(--rule);line-height:1.45}
+th{font-weight:500;color:var(--muted);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+td:last-child,th:last-child{padding-right:0}
+td.num{text-align:right;white-space:nowrap}
+code{font-family:var(--mono);font-size:.9em;background:var(--plate);padding:1px 5px;border-radius:2px}
+pre{font-family:var(--mono);font-size:13px;line-height:1.5;background:var(--plate);border:1px solid var(--rule);padding:14px 16px;overflow-x:auto;margin:20px 0;max-width:100%}
+pre code{background:none;padding:0;font-size:inherit}
+.swatches{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin:20px 0;max-width:none}
+.sw{font-family:var(--mono);font-size:12px;line-height:1.4}
+.sw i{display:block;height:56px;border:1px solid var(--rule);margin-bottom:6px}
+.sw b{font-weight:500;display:block}
+.sw span{color:var(--muted)}
+.tod{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--rule);margin:20px 0;max-width:none}
+.tod > div{padding:14px 12px;font-family:var(--mono);font-size:12.5px;line-height:1.5}
+.tod b{display:block;font-weight:500;margin-bottom:4px}
+@media (max-width:560px){.tod{grid-template-columns:1fr 1fr}}
+.glyphs{font-family:var(--mono);font-size:15px;letter-spacing:.35em;white-space:nowrap}
+.note{border-left:3px solid var(--rule);padding-left:14px;color:var(--muted);font-size:15.5px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px 40px;max-width:none}
+.two > *{max-width:none}
+kbd{font-family:var(--mono);font-size:12.5px;border:1px solid var(--rule);border-bottom-width:2px;border-radius:3px;padding:0 6px;background:var(--plate)}
+hr{border:0;border-top:1px solid var(--rule);margin:48px 0}
+.small{font-size:14.5px;color:var(--muted)}
+ul li,ol li{margin:4px 0}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <span class="eyebrow">Working title · case study and full design · v0.1 · 23 September 2026</span>
+  <h1>Til<span class="t">~</span>de</h1>
+  <p class="lede">A quiet, endless world you walk through, drawn with nothing but one font. Three dimensions underneath, punctuation on top, and a horizon that keeps its promise.</p>
+  <div class="meta"><span>Format <b>3D, first person</b></span><span>Runs <b>entirely in the browser</b></span><span>Assets <b>one font file</b></span><span>Backend <b>none</b></span></div>
+
+  <div class="plate hero">
+    <canvas id="hero" width="800" height="504" aria-label="Live text-mode landscape rendered from the same terrain rules the game will use"></canvas>
+    <pre id="hero-fallback" aria-hidden="true">
+<span class="g-sky f0">                                                                                                    </span>
+<span class="g-sky f0">                                                                                                    </span>
+<span class="g-sky f0">                                                                                                    </span>
+<span class="g-sky f0">                                                                                                    </span>
+<span class="g-sky f0">                                                                                                    </span>
+<span class="g-sky f0">                                                                                                    </span>
+<span class="g-sky f0">                                      </span><span class="g-ink f2">|</span><span class="g-sky f0">                                                             </span>
+<span class="g-sky f0">                                      </span><span class="g-ink f2">A</span><span class="g-sky f0">                                                             </span>
+<span class="g-sky f0">                                      </span><span class="g-ink f2">|</span><span class="g-sky f0">                                                             </span>
+<span class="g-sky f0">                                      </span><span class="g-ink f2">|</span><span class="g-sky f0">                                                             </span>
+<span class="g-sky f0">                      </span><span class="g-forest f4"> </span><span class="g-sky f0"> </span><span class="g-forest f4"> Y T</span><span class="g-sky f0">        </span><span class="g-forest f4"> T</span><span class="g-ink f2">|</span><span class="g-forest f4">T . T </span><span class="g-sky f0">                                                       </span>
+<span class="g-sky f0">            </span><span class="g-forest f4">Y T .</span><span class="g-sky f0">   </span><span class="g-forest f4">Y . T T . T Y . T T . T</span><span class="g-forest f3">.T</span><span class="g-forest f4"> .</span><span class="g-sky f0">           </span><span class="g-grass f4">. ' ' .</span><span class="g-sky f0">                                   </span>
+<span class="g-sky f0">         </span><span class="g-forest f4">. T T . </span><span class="g-forest f3">Y.TT.</span><span class="g-forest f4"> T</span><span class="g-forest f3">.</span><span class="g-forest f4">T . T T . T </span><span class="g-forest f3">TT.TT.TT.TT.</span><span class="g-forest f4">T . T</span><span class="g-forest f3">.</span><span class="g-grass f3">''</span><span class="g-grass f4">. ' ' . </span><span class="g-grass f3">,.''.</span><span class="g-forest f3">TT.T</span><span class="g-sky f0"> </span><span class="g-grass f4">. ' ' .</span><span class="g-sky f0">         </span><span class="g-forest f4">Y . Y Y .</span>
+<span class="g-forest f4">Y . T T . </span><span class="g-forest f3">T.T</span><span class="g-forest f4"> .</span><span class="g-forest f3">YY.TT.TT.TT.TT.TT.YT.TT.TT.TT.TT.TT.TT.TT</span><span class="g-grass f3">.''.''.,,.'</span><span class="g-forest f3">T.TT.TT.TT</span><span class="g-grass f4"> ' . ' ' .</span><span class="g-forest f4"> T T . Y Y . </span>
+<span class="g-forest f4"> .</span><span class="g-forest f3">TT.TT.TT.TT.YY.TT.TT.TT.TT.TT.TT.TT.TT.TT.TT.TT.TT.TT.TT.TT</span><span class="g-grass f3">.</span><span class="g-forest f3">TT.TT.TT.TY.TT.TT</span><span class="g-grass f4">. </span><span class="g-forest f4">T Y . Y T . T Y . Y</span>
+<span class="g-forest f3">.TT.TT.YT.TT.TT.TT.TT.TT.TT.TT.TT.TT.TT.YT.TT.TT.TT.TT.TT.TT.TT.TT.TT.TY.TT.TT.TT.TT.T</span><span class="g-forest f4">T T . T T . T </span>
+<span class="g-forest f3">YT.TT.TT.TT.TT.TT.TT.TT.TT.TT.TT.TT.TT.TT.TT.TT.TT.TT.TT.TT.TT.TT.TT.TT.TT.TY.TT.TT.TT.TT.TT.TT.TT.T</span>
+<span class="g-forest f3">T.TT.TT.TT.TT.TY.TT.TT.TT.TT.TT.TT.TT.TT.TT.TT.T</span><span class="g-sand f3">:</span><span class="g-forest f3">.TT.TT.TT.TT.TT.TT.TT.YT.TT.TT.TT.</span><span class="g-sand f3">::.::.::.......::</span>
+<span class="g-water f3">-~~-~~</span><span class="g-sand f3">.</span><span class="g-sand f2">:::::::::</span><span class="g-sand f3">::.::.::.</span><span class="g-sand f2">:::::::</span><span class="g-sand f3">:.::.:</span><span class="g-water f3">~-~~-</span><span class="g-sand f3">::.::.::.::.::.::.::.::.:</span><span class="g-water f3">~-~~-~~-~~</span><span class="g-sand f3">.::.:</span><span class="g-water f3">~-~~-~~-~~-~~-~~-</span>
+<span class="g-water f2">~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~</span>
+<span class="g-water f2">~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~</span>
+<span class="g-water f2">~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~</span>
+<span class="g-water f1">~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~</span>
+<span class="g-water f1">~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~</span>
+<span class="g-water f1">~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~</span>
+<span class="g-water f1">-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-</span>
+<span class="g-water f1">~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~</span>
+<span class="g-water f1">~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~</span>
+<span class="g-water f1">~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~</span>
+<span class="g-water f1">~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~</span>
+<span class="g-water f0">~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~</span>
+<span class="g-water f0">~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~</span>
+<span class="g-water f0">~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~</span>
+<span class="g-water f0">-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-</span>
+<span class="g-water f0">-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-</span>
+<span class="g-water f0">~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~~-~</span>
+</pre>
+  </div>
+  <div class="hero-cap"><span>Live: the same terrain rules, raycast into a grid of glyphs, drifting at walking pace.</span><span>Day fades to night over four minutes.</span></div>
+
+  <nav aria-label="Contents">
+    <ul class="toc">
+      <li><a href="#brief">The brief</a></li>
+      <li><a href="#refs">Reference points</a></li>
+      <li><a href="#decisions">Decisions</a></li>
+      <li><a href="#look">The look</a></li>
+      <li><a href="#world">The world</a></li>
+      <li><a href="#move">Moving through it</a></li>
+      <li><a href="#sound">Sound</a></li>
+      <li><a href="#arch">Architecture</a></li>
+      <li><a href="#persist">Memory and sharing</a></li>
+      <li><a href="#budget">Budgets and risks</a></li>
+      <li><a href="#plan">Build order</a></li>
+      <li><a href="#open">Open calls</a></li>
+    </ul>
+  </nav>
+</header>
+<h2 id="brief">The brief</h2>
+
+<p>Tilde is a first-person exploration game that runs in a browser tab. You walk, and you look; that is the whole verb list. No goals, no enemies, no score, no interface, and the land continues in every direction for as long as you care to go. Every metre is computed rather than stored, so the same seed and the same coordinates give you the same hill and the same monolith in ten years as today.</p>
+
+<p>It is drawn with one font. The only asset in the repository is a single OFL monospace file; every texture, every note and the reverb tail are generated at boot. The picture is deliberately unsharp: low internal resolution, character cells instead of pixels, fog the colour of the paper it dissolves into, a palette held under fifteen percent saturation. Music arrives rarely and leaves long silences. The only hints are capital letters standing in the landscape, and nothing explains them.</p>
+
+<div class="pillars">
+  <div><b>Quiet</b><p>No goals, no HUD, no threat. Nothing asks you for anything.</p></div>
+  <div><b>Unsharp</b><p>Low resolution, glyph cells, heavy fog. Softness is the beauty, not a compromise.</p></div>
+  <div><b>Endless</b><p>A deterministic infinite world, streamed in chunks at the speed you walk.</p></div>
+  <div><b>Unchanging</b><p>Same seed plus same coordinates equals the same place, permanently.</p></div>
+  <div><b>One font</b><p>One monospace file is the whole asset list. The rest is generated.</p></div>
+</div>
+
+<p>Simple on top, complex underneath, means something specific here. On top: two movement keys, a mouse, a horizon. Underneath: a worker pool generating terrain off the main thread, a chunk manager with a seven-state lifecycle and LRU eviction, hand-written simplex noise with domain warp, a two-pass renderer whose second pass picks one character per cell from a measured font atlas, a generative audio scheduler on the two-clocks pattern, and persistence split across two storage APIs by how fast each piece of state grows. None of it is visible, and all of it exists so that nothing has to be.</p>
+
+<h2 id="refs">Reference points</h2>
+
+<p>Five things this borrows from, and the part of each we are not taking.</p>
+
+<ul>
+  <li><b>Proteus (2013).</b> Take the goal-less first person, and music that responds to where you are standing rather than to anything you achieved. Leave the saturated palette and the island's edges.</li>
+  <li><b>Return of the Obra Dinn.</b> Take one lesson: a harsh visual constraint reads as elegance the moment the palette is disciplined enough to carry it. Leave the dithering, the monochrome and the withheld-information structure.</li>
+  <li><b>Acerola's ASCII shader (2024), and the older luminance-to-glyph shaders.</b> Take the technique exactly: a glyph chosen by brightness, overridden by an edge glyph where a Sobel filter finds a direction, applied after the frame exists. Leave the neon demo look and the urge to make the effect the subject.</li>
+  <li><b>Dwarf Fortress.</b> Take the proof that a field of characters can be read as landscape rather than as text. Leave the simulation, the systems, the menus and the losing.</li>
+  <li><b>Comanche-style heightfield raycasting.</b> Take it for this document's own hero image, where a few hundred lines of Canvas 2D beat any engine. The game does not use it: a rasterised mesh gives us vertex colours, material ids and instanced props.</li>
+</ul>
+
+<h2 id="decisions">Decisions</h2>
+
+<p>These fifteen records are the case-study half of the document. Each names the forks that were genuinely open, the branch taken, the reasoning as it stood, and the price being paid. Later sections cite them by number, which is why they are labelled.</p>
+
+<div class="decision" id="d1"><h3><span class="n">D1</span>Two dimensions or three</h3><dl class="dgrid">
+<dt>Options</dt><dd><ul>
+<li>2D top-down grid: simplest, instantly readable.</li>
+<li>2.5D isometric: depth without a real camera.</li>
+<li>Full 3D, first person: a horizon.</li>
+</ul></dd>
+<dt>Choice</dt><dd class="choice">Full 3D, first person.</dd>
+<dt>Why</dt><dd>Walking toward something is the entire feeling being chased, and it needs a horizon and fog to exist at all. A top-down view can show a beautiful map, but never a far ridge that is seven minutes away.</dd>
+<dt>Cost</dt><dd>Terrain meshing, a camera and height sampling under the eye: about one and a half times the code of the 2D plan.</dd>
+</dl></div>
+
+<div class="decision" id="d2"><h3><span class="n">D2</span>A world built from glyphs, or a world drawn in glyphs</h3><dl class="dgrid">
+<dt>Options</dt><dd><ul>
+<li>Tiles as textured glyph quads: a literal character world.</li>
+<li>Glyph picked per vertex in the terrain shader: cheap, tied to mesh density.</li>
+<li>Render ordinary geometry, convert the frame afterwards.</li>
+</ul></dd>
+<dt>Choice</dt><dd class="choice">Render untextured flat-shaded geometry with vertex colours into a low-resolution target, then pick one glyph per cell in a screen-space pass.</dd>
+<dt>Why</dt><dd>The pass hides coarse geometry, so the 3D never has to be good, and that is the whole budget argument for one person. It keeps the font as the only texture in the build, and a world of glyph quads stops being a landscape the moment you turn the camera.</dd>
+<dt>Cost</dt><dd>Two passes and a render target, and anything that must stay sharp, the journal and the map, lives outside the pass as DOM in the same font.</dd>
+</dl></div>
+
+<figure>
+<svg viewBox="0 0 920 300" role="img" aria-label="Two rendering pipelines drawn side by side. The rejected pipeline goes from a noise field to a tile grid to one textured glyph quad per tile, through the camera, to a busy screen. The chosen pipeline goes from the same noise field to an untextured mesh carrying vertex colour and a material id, into a low resolution scene target, through a glyph pass that reads the font atlas, to a soft screen.">
+<defs>
+<marker id="a-arrow-1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
+<marker id="a-arrow-1a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker>
+</defs>
+<g font-family="ui-monospace, monospace" fill="currentColor">
+
+<text x="30" y="22" font-size="12" opacity="0.6">Rejected: a world built from glyphs</text>
+<text x="490" y="22" font-size="12" fill="var(--accent)">Chosen: a plain world drawn in glyphs</text>
+<line x1="462" y1="30" x2="462" y2="292" stroke="currentColor" stroke-width="1" opacity="0.18"/>
+
+<g opacity="0.55">
+<rect x="30" y="36" width="400" height="30" fill="none" stroke="currentColor" stroke-width="1"/>
+<text x="44" y="56" font-size="12">2D noise field</text>
+<line x1="230" y1="66" x2="230" y2="86" stroke="currentColor" stroke-width="1" marker-end="url(#a-arrow-1)"/>
+<text x="240" y="81" font-size="11">heights</text>
+
+<rect x="30" y="88" width="400" height="44" fill="none" stroke="currentColor" stroke-width="1"/>
+<text x="44" y="106" font-size="12">tile grid,</text>
+<text x="44" y="122" font-size="12">one cell per metre</text>
+<line x1="230" y1="132" x2="230" y2="152" stroke="currentColor" stroke-width="1" marker-end="url(#a-arrow-1)"/>
+<text x="240" y="147" font-size="11">one quad each</text>
+
+<rect x="30" y="154" width="400" height="30" fill="none" stroke="currentColor" stroke-width="1"/>
+<text x="44" y="174" font-size="12">textured quad per tile, glyph baked in</text>
+<line x1="230" y1="184" x2="230" y2="204" stroke="currentColor" stroke-width="1" marker-end="url(#a-arrow-1)"/>
+<text x="240" y="199" font-size="11">many small textures</text>
+
+<rect x="30" y="206" width="400" height="30" fill="none" stroke="currentColor" stroke-width="1"/>
+<text x="44" y="226" font-size="12">camera</text>
+<line x1="230" y1="236" x2="230" y2="256" stroke="currentColor" stroke-width="1" marker-end="url(#a-arrow-1)"/>
+<text x="240" y="251" font-size="11">pixels</text>
+
+<rect x="30" y="258" width="400" height="30" fill="none" stroke="currentColor" stroke-width="1"/>
+<text x="44" y="278" font-size="12">screen: busy, a 3D roguelike</text>
+</g>
+
+<g stroke="var(--accent)">
+<rect x="490" y="36" width="298" height="30" fill="none" stroke-width="1.4"/>
+<line x1="639" y1="66" x2="639" y2="86" stroke-width="1.4" marker-end="url(#a-arrow-1a)"/>
+<rect x="490" y="88" width="298" height="44" fill="none" stroke-width="1.4"/>
+<line x1="639" y1="132" x2="639" y2="152" stroke-width="1.4" marker-end="url(#a-arrow-1a)"/>
+<rect x="490" y="154" width="298" height="30" fill="none" stroke-width="1.4"/>
+<line x1="639" y1="184" x2="639" y2="204" stroke-width="1.4" marker-end="url(#a-arrow-1a)"/>
+<rect x="490" y="206" width="298" height="30" fill="none" stroke-width="1.4"/>
+<line x1="639" y1="236" x2="639" y2="256" stroke-width="1.4" marker-end="url(#a-arrow-1a)"/>
+<rect x="490" y="258" width="298" height="30" fill="none" stroke-width="1.4"/>
+<rect x="800" y="206" width="90" height="30" fill="none" stroke-width="1.4"/>
+<line x1="800" y1="221" x2="792" y2="221" stroke-width="1.4" marker-end="url(#a-arrow-1a)"/>
+</g>
+
+<text x="504" y="56" font-size="12">2D noise field</text>
+<text x="504" y="106" font-size="12">untextured mesh,</text>
+<text x="504" y="122" font-size="12">vertex colour plus material id</text>
+<text x="504" y="174" font-size="12">low-res scene target, 384 x 120</text>
+<text x="504" y="226" font-size="12">glyph pass, one character per cell</text>
+<text x="504" y="278" font-size="12">screen: soft, one font</text>
+<text x="810" y="225" font-size="11" fill="var(--accent)">font atlas</text>
+
+<text x="649" y="81" font-size="11" fill="var(--accent)">heights and materials</text>
+<text x="649" y="147" font-size="11" fill="var(--accent)">RGB plus material id in alpha</text>
+<text x="649" y="199" font-size="11" fill="var(--accent)">luminance, edges, material</text>
+<text x="649" y="251" font-size="11" fill="var(--accent)">paper and ink</text>
+</g>
+</svg>
+<figcaption>Only the right-hand path keeps the font as the single texture in the build, and only the right-hand path hides coarse geometry, because the conversion happens after the frame exists rather than before it.</figcaption>
+</figure>
+<div class="decision" id="d3"><h3><span class="n">D3</span>Framework, engine, or neither</h3><dl class="dgrid">
+<dt>Options</dt><dd><ul>
+<li>One HTML file, no build: nothing to install.</li>
+<li>A UI framework: familiar structure.</li>
+<li>An engine, Babylon or Godot web: batteries included.</li>
+<li>Vite with TypeScript modules: a build step, nothing above it.</li>
+</ul></dd>
+<dt>Choice</dt><dd class="choice">Vite plus TypeScript ES modules, no framework, no engine.</dd>
+<dt>Why</dt><dd>A loop that runs sixty times a second does not want a reconciler sitting between it and the canvas. Engines hide exactly the parts that are the pleasure of this project: chunk streaming, the worker protocol, the glyph pass.</dd>
+<dt>Cost</dt><dd>Everything a scene graph would have handed over is written by hand, and there is now a build step between the source and the page.</dd>
+</dl></div>
+
+<div class="decision" id="d4"><h3><span class="n">D4</span>How close to the metal</h3><dl class="dgrid">
+<dt>Options</dt><dd><ul>
+<li>Raw WebGL2: total control, no dependency.</li>
+<li>Three.js as a library: render targets, buffers, instancing, fog.</li>
+<li>PixiJS: excellent, and two-dimensional.</li>
+</ul></dd>
+<dt>Choice</dt><dd class="choice">Three.js, used as a library rather than as a framework, and the only runtime dependency.</dd>
+<dt>Why</dt><dd>The interesting problems here are the generator and the glyph pass, not attribute binding and uniform plumbing. Three gives us <code>WebGLRenderTarget</code>, <code>BufferGeometry</code>, <code>InstancedMesh</code> and exponential fog without imposing a project structure.</dd>
+<dt>Cost</dt><dd>A few hundred kilobytes of the bundle budget, and someone else's release cadence to track.</dd>
+</dl></div>
+
+<div class="decision" id="d5"><h3><span class="n">D5</span>Frontend only, or a backend</h3><dl class="dgrid">
+<dt>Options</dt><dd><ul>
+<li>Frontend only: nothing to run, nothing to pay for.</li>
+<li>A small API: cross-device saves, a shared board.</li>
+<li>Full multiplayer: other walkers on the same seed.</li>
+</ul></dd>
+<dt>Choice</dt><dd class="choice">Frontend only.</dd>
+<dt>Why</dt><dd>The world is a pure function of its seed, so sharing one is sharing a link rather than replicating a database. The only features that would genuinely need a server, shared presence and a shared board, are out of scope for v1.</dd>
+<dt>Cost</dt><dd>No cross-device saves, and no way to see that anyone else ever found the same letter.</dd>
+</dl></div>
+
+<div class="decision" id="d6"><h3><span class="n">D6</span>Where it is hosted</h3><dl class="dgrid">
+<dt>Options</dt><dd><ul>
+<li>GitHub Pages: free, already where the code lives.</li>
+<li>Cloudflare Pages or Netlify: free, custom headers.</li>
+<li>A small VPS: full control, including headers.</li>
+</ul></dd>
+<dt>Choice</dt><dd class="choice">Any static host, with GitHub Pages as the baseline that must keep working.</dd>
+<dt>Why</dt><dd>The build output is static files and a font. The one thing that could rule a host out is needing COOP and COEP headers for cross-origin isolation, and <a href="#d8">D8</a> avoids that deliberately rather than by accident.</dd>
+<dt>Cost</dt><dd>SharedArrayBuffer is off the table permanently, not just for now.</dd>
+</dl></div>
+
+<div class="decision" id="d7"><h3><span class="n">D7</span>Store explored terrain, or regenerate it</h3><dl class="dgrid">
+<dt>Options</dt><dd><ul>
+<li>Write chunks to IndexedDB: instant revisits.</li>
+<li>Memory cache only, regenerate on return: nothing to migrate.</li>
+<li>A hybrid, storing only chunks the player lingered in.</li>
+</ul></dd>
+<dt>Choice</dt><dd class="choice">Regenerate. A chunk is a pure function of <code>(seed, cx, cz, GEN_VERSION)</code>, and no byte of terrain is ever written to storage.</dd>
+<dt>Why</dt><dd>A stored world drifts out of step with the generator, and its quota fills the longer someone enjoys the game. Generation is under eight milliseconds in a worker, competitive with a database read once you add a schema and a migration path. It also makes the unchanging pillar a property of the code, not of a disk that might be cleared.</dd>
+<dt>Cost</dt><dd>The generator becomes load-bearing. <code>GEN_VERSION</code> is pinned, saved with the seed, and old generators stay behind a switch so nobody's world shifts under them.</dd>
+</dl></div>
+
+<figure>
+<svg viewBox="0 0 900 260" role="img" aria-label="A determinism diagram. Seed, chunk x, chunk z and the generator version feed a mix32 hash, which seeds a per-chunk PRNG and noise offsets, which produce ChunkData containing heights, materials, props and a landmark. ChunkData is transferred to the main thread for meshing and collision. A dashed arrow from ChunkData to the saved box is crossed out and labelled never; the saved box holds only the seed, the pose, discoveries and visited keys.">
+<defs>
+<marker id="a-arrow-2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
+<marker id="a-arrow-2a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker>
+</defs>
+<g font-family="ui-monospace, monospace" fill="currentColor">
+
+<text x="232" y="30" font-size="11" text-anchor="middle" opacity="0.75">four integers</text>
+<text x="372" y="30" font-size="11" text-anchor="middle" opacity="0.75">one 32-bit seed</text>
+<text x="607" y="30" font-size="11" text-anchor="middle" opacity="0.75">noise samples</text>
+
+<rect x="10" y="40" width="200" height="48" fill="none" stroke="currentColor" stroke-width="1"/>
+<text x="22" y="62" font-size="12">seed, cx, cz,</text>
+<text x="22" y="78" font-size="12">GEN_VERSION</text>
+<line x1="210" y1="64" x2="250" y2="64" stroke="currentColor" stroke-width="1" marker-end="url(#a-arrow-2)"/>
+
+<rect x="254" y="40" width="96" height="48" fill="none" stroke="currentColor" stroke-width="1"/>
+<text x="266" y="70" font-size="12">mix32</text>
+<line x1="350" y1="64" x2="390" y2="64" stroke="currentColor" stroke-width="1" marker-end="url(#a-arrow-2)"/>
+
+<rect x="394" y="40" width="200" height="48" fill="none" stroke="currentColor" stroke-width="1"/>
+<text x="406" y="62" font-size="12">sfc32 PRNG</text>
+<text x="406" y="78" font-size="12">and noise offsets</text>
+<line x1="594" y1="64" x2="616" y2="64" stroke="currentColor" stroke-width="1" marker-end="url(#a-arrow-2)"/>
+
+<rect x="620" y="40" width="268" height="48" fill="none" stroke="currentColor" stroke-width="1"/>
+<text x="632" y="62" font-size="12">ChunkData</text>
+<text x="632" y="78" font-size="11" opacity="0.8">heights, materials, props, landmark</text>
+
+<path d="M 690 88 L 690 128 L 445 128 L 445 148" fill="none" stroke="currentColor" stroke-width="1" marker-end="url(#a-arrow-2)"/>
+<text x="560" y="122" font-size="11" text-anchor="middle" opacity="0.75">transferred buffers</text>
+
+<rect x="310" y="152" width="270" height="48" fill="none" stroke="currentColor" stroke-width="1"/>
+<text x="322" y="174" font-size="12">main thread, in memory</text>
+<text x="322" y="190" font-size="11" opacity="0.8">mesh, props, collision, then evicted</text>
+
+<path d="M 800 88 L 800 148" fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="4 4" marker-end="url(#a-arrow-2a)"/>
+<line x1="794" y1="112" x2="806" y2="124" stroke="var(--accent)" stroke-width="1.6"/>
+<line x1="806" y1="112" x2="794" y2="124" stroke="var(--accent)" stroke-width="1.6"/>
+<text x="814" y="122" font-size="11" fill="var(--accent)">never</text>
+
+<rect x="620" y="152" width="268" height="94" fill="none" stroke="currentColor" stroke-width="1"/>
+<text x="632" y="172" font-size="12">saved</text>
+<text x="632" y="192" font-size="11" opacity="0.8">seed and GEN_VERSION</text>
+<text x="632" y="208" font-size="11" opacity="0.8">pose: x, z, yaw, pitch, time of day</text>
+<text x="632" y="224" font-size="11" opacity="0.8">discoveries</text>
+<text x="632" y="240" font-size="11" opacity="0.8">visited chunk keys</text>
+</g>
+</svg>
+<figcaption>Terrain is a pure function of four integers and is never written to storage. What survives a reload is only the seed, where you were standing, what you found, and which chunks you have crossed.</figcaption>
+</figure>
+<div class="decision" id="d8"><h3><span class="n">D8</span>Where generation runs, and how the buffers move</h3><dl class="dgrid">
+<dt>Options</dt><dd><ul>
+<li>Main thread: no protocol, a hitch on every chunk.</li>
+<li>Workers with structured clone: safe, copies everything.</li>
+<li>Workers with SharedArrayBuffer: zero copy, shared memory.</li>
+<li>Workers with transferable ArrayBuffers: zero copy, ownership moves.</li>
+</ul></dd>
+<dt>Choice</dt><dd class="choice">A pool of <code>hardwareConcurrency</code> minus one, clamped to between two and four, passing transferable ArrayBuffers.</dd>
+<dt>Why</dt><dd>A chunk is tens of kilobytes of typed arrays with a single owner at a time, which is precisely the case transfer exists for. SharedArrayBuffer buys concurrent reads we do not need and costs the isolation headers, which costs <a href="#d6">D6</a>.</dd>
+<dt>Cost</dt><dd>Once transferred, the worker's reference is dead, so every read happens before the post, and replies for the wrong chunk or a stale version have to be dropped.</dd>
+</dl></div>
+
+<div class="decision" id="d9"><h3><span class="n">D9</span>Noise and hashing</h3><dl class="dgrid">
+<dt>Options</dt><dd><ul>
+<li>A noise library and a PRNG library: already tested.</li>
+<li>Value noise by hand: trivial, visibly gridded.</li>
+<li>Simplex with fBm and warp by hand: a few hundred lines we own.</li>
+</ul></dd>
+<dt>Choice</dt><dd class="choice">Hand-written 2D simplex, fBm and domain warp in a dependency-free module, with splitmix-style 32-bit mixing of the coordinates seeding an <code>sfc32</code> generator per chunk.</dd>
+<dt>Why</dt><dd>The same module is imported by the main thread and by every worker, so it has to bundle into a worker without configuration archaeology. Determinism is the product here, and delegating it to a dependency's internal state and version history is an odd place to put that trust.</dd>
+<dt>Cost</dt><dd>A few hundred lines to keep tested, and the gradient tables have to stay byte-identical on both sides of the worker boundary.</dd>
+</dl></div>
+
+<div class="decision" id="d10"><h3><span class="n">D10</span>Persistence</h3><dl class="dgrid">
+<dt>Options</dt><dd><ul>
+<li>localStorage only: synchronous, five megabytes, a string API.</li>
+<li>IndexedDB only: asynchronous, large, ceremonious.</li>
+<li>Both, split by role.</li>
+</ul></dd>
+<dt>Choice</dt><dd class="choice">Both. localStorage for tiny synchronous state, IndexedDB for anything that grows without a ceiling.</dd>
+<dt>Why</dt><dd>Settings, seed and pose must be readable before the first frame and writable inside a <code>pagehide</code> handler, which is what synchronous storage is good at. Discoveries and the visited-chunk set grow for as long as someone keeps walking, which is what IndexedDB is good at.</dd>
+<dt>Cost</dt><dd>Two storage modules, and two failure modes to handle quietly: quota exhaustion and private browsing.</dd>
+</dl></div>
+
+<div class="decision" id="d11"><h3><span class="n">D11</span>Audio from files or from code</h3><dl class="dgrid">
+<dt>Options</dt><dd><ul>
+<li>Recorded ambient loops: fastest route to sounding good.</li>
+<li>Sampled instruments triggered by code: still megabytes of assets.</li>
+<li>Fully generative Web Audio: no assets, total control, no fallback.</li>
+</ul></dd>
+<dt>Choice</dt><dd class="choice">Fully generative Web Audio, down to a reverb impulse response made from four seconds of exponentially decaying noise.</dd>
+<dt>Why</dt><dd>One font as the only asset is a rule, not a slogan, and a folder of audio files would quietly end it. Pads with multi-second attacks through a lowpass at 1.2 kHz are a handful of nodes, so the synthesis is not the hard part; restraint is.</dd>
+<dt>Cost</dt><dd>It will never sound recorded, and anything richer than a pad or a bell is real work rather than a file.</dd>
+</dl></div>
+
+<div class="decision" id="d12"><h3><span class="n">D12</span>Which font, and how it becomes an atlas</h3><dl class="dgrid">
+<dt>Options</dt><dd><ul>
+<li>A system monospace stack: zero bytes, different on every machine.</li>
+<li>A bundled OFL TTF, rasterised at boot: identical everywhere.</li>
+<li>A hand-drawn bitmap font: exact control, a week of pixel art.</li>
+</ul></dd>
+<dt>Choice</dt><dd class="choice">Bundle IBM Plex Mono under the OFL, rasterise it into a glyph atlas with Canvas 2D at boot, measure each glyph's ink coverage, and sort the ramps by the measurement.</dd>
+<dt>Why</dt><dd>A ramp only works if each glyph is genuinely darker than the one before it, and that is a property of the rasterisation at the actual cell size, not of anyone's intuition about how heavy a semicolon looks. Measuring at boot means swapping the font later does not mean rewriting five ramps by hand.</dd>
+<dt>Cost</dt><dd>A boot step before the first frame, and about a tenth of the bundle budget spent on one file.</dd>
+</dl></div>
+
+<div class="decision" id="d13"><h3><span class="n">D13</span>Camera</h3><dl class="dgrid">
+<dt>Options</dt><dd><ul>
+<li>First person: presence, a horizon, and pointer lock.</li>
+<li>Third person behind a wandering figure: charming, readable.</li>
+<li>Free fly: wonderful for debugging, weightless for playing.</li>
+</ul></dd>
+<dt>Choice</dt><dd class="choice">First person, eye at 1.6 m, walking at 2.5 m/s with everything eased.</dd>
+<dt>Why</dt><dd>Presence is the point, and a body seen from behind puts a character between the player and the place. The low eye height and the deliberate slowness are what make a ridge a kilometre away feel like seven minutes rather than a texture on the horizon.</dd>
+<dt>Cost</dt><dd>Pointer lock, which a real share of people dislike, mitigated by arrow-key turning and one line of prompting.</dd>
+</dl></div>
+
+<div class="decision" id="d14"><h3><span class="n">D14</span>TypeScript or JavaScript</h3><dl class="dgrid">
+<dt>Options</dt><dd><ul>
+<li>JavaScript with JSDoc: no build friction, hints where they help.</li>
+<li>TypeScript in strict mode: a compiler that reads the worker protocol.</li>
+</ul></dd>
+<dt>Choice</dt><dd class="choice">TypeScript, strict.</dd>
+<dt>Why</dt><dd>The worker message contract and <code>ChunkData</code> are the two places where a silent shape mismatch produces a world that is subtly wrong rather than obviously broken, and subtly wrong is expensive to chase. Types make the transfer list and the typed-array widths explicit at the call site.</dd>
+<dt>Cost</dt><dd>Some wrestling with Three.js and worker typings, and very little else.</dd>
+</dl></div>
+
+<div class="decision" id="d15"><h3><span class="n">D15</span>What gets tested</h3><dl class="dgrid">
+<dt>Options</dt><dd><ul>
+<li>Nothing: it is a toy, and the screen is the test.</li>
+<li>Vitest on the pure modules only.</li>
+<li>Vitest plus Playwright: real frames, real maintenance.</li>
+</ul></dd>
+<dt>Choice</dt><dd class="choice">Vitest on the pure modules only: determinism, hash distribution, and ramp ordering.</dd>
+<dt>Why</dt><dd>The determinism test earns its keep, generating the same chunk twice and across the worker boundary and comparing the bytes, because that is the pillar a refactor breaks without anyone noticing. Ramp ordering catches a font change that has inverted the tonal scale.</dd>
+<dt>Cost</dt><dd>Nothing in the renderer, the audio or the controller is covered, which is accepted: those are judged by looking and listening.</dd>
+</dl></div>
+<h2 id="look">The look</h2>
+
+<p class="eyebrow">Two passes, one font</p>
+
+<h3>Cells and softness</h3>
+
+<p>
+The screen is a grid of character cells, 10 by 18 CSS pixels by default
+and tunable from 8 by 14 up to 14 by 26. One glyph per cell, one ink,
+one paper, and no detail finer than a cell exists anywhere.
+</p>
+
+<p>
+The scene renders at two scene pixels per cell on each axis. At 1920 by
+1080 that is 192 by 60 cells and a 384 by 120 target, about one
+forty-fifth of the pixels in the window. Two is the right number: one texel
+per cell leaves the edge filter nothing to work with, and four starts to
+resolve the coarse geometry the pass exists to hide.
+</p>
+
+<div class="scroll">
+<table>
+<thead><tr><th>Window</th><th>Cells</th><th>Scene target</th><th>Cells on screen</th></tr></thead>
+<tbody>
+<tr><td class="num">1280 &times; 720</td><td class="num">128 &times; 40</td><td class="num">256 &times; 80</td><td class="num">5,120</td></tr>
+<tr><td class="num">1440 &times; 900</td><td class="num">144 &times; 50</td><td class="num">288 &times; 100</td><td class="num">7,200</td></tr>
+<tr><td class="num">1920 &times; 1080</td><td class="num">192 &times; 60</td><td class="num">384 &times; 120</td><td class="num">11,520</td></tr>
+<tr><td class="num">2560 &times; 1440</td><td class="num">256 &times; 80</td><td class="num">512 &times; 160</td><td class="num">20,480</td></tr>
+</tbody>
+</table>
+</div>
+<p class="small">At the default 10 by 18 cell. Cells are whole numbers,
+so the grid is centred and the few leftover pixels are paper.</p>
+
+<p class="note">Sizes are CSS pixels. The device pixel ratio is ignored
+on purpose: a denser display buys nothing when the image has no detail
+finer than a cell.</p>
+
+<h3>The two passes</h3>
+
+<p>
+The scene pass draws the world into one render target. Flat shading, no
+textures, vertex colours carrying the biome ink, one directional light
+for the sun, and exponential fog whose colour is exactly the paper of
+the moment, so distance dissolves into the page rather than into a
+horizon. The sky is plain paper, the same clear colour. Output is RGBA: shaded
+colour in RGB, material id as a byte in alpha. Nearest filtering, no
+mipmaps, because any filter that smooths the target smears material ids
+across boundaries and invents inks that do not exist.
+</p>
+
+<p>
+The glyph pass is a full-screen triangle with the scene target and the
+atlas bound. It decides one glyph per cell and writes final pixels.
+There is no third pass: grain and vignette happen at the end of the same shader.
+</p>
+
+<figure>
+<svg role="img" aria-label="Render pipeline from left to right: scene, render target, glyph pass, grain and vignette, canvas, with a font atlas feeding coverage into the glyph pass" viewBox="0 0 920 220" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<marker id="b-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 0 L10 5 L0 10 z" fill="currentColor"></path>
+</marker>
+<marker id="b-arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0 0 L10 5 L0 10 z" fill="var(--accent)"></path>
+</marker>
+</defs>
+
+<rect x="10" y="40" width="140" height="72" fill="none" stroke="currentColor"></rect>
+<text x="22" y="62" font-size="13" fill="currentColor">Scene</text>
+<text x="22" y="80" font-size="11" fill="currentColor">meshes, flat shaded</text>
+<text x="22" y="94" font-size="11" fill="currentColor">vertex colour, mat id</text>
+<text x="22" y="108" font-size="11" fill="currentColor">fog = paper</text>
+
+<rect x="195" y="40" width="140" height="72" fill="none" stroke="currentColor"></rect>
+<text x="207" y="62" font-size="13" fill="currentColor">Render target</text>
+<text x="207" y="80" font-size="11" fill="currentColor">RGBA, nearest</text>
+<text x="207" y="94" font-size="11" fill="currentColor">no mipmaps</text>
+<text x="207" y="108" font-size="11" fill="currentColor">2 px per cell</text>
+
+<rect x="380" y="40" width="160" height="72" fill="none" stroke="var(--accent)" stroke-width="2"></rect>
+<text x="392" y="62" font-size="13" fill="var(--accent)">Glyph pass</text>
+<text x="392" y="80" font-size="11" fill="currentColor">per cell: L, M, edge</text>
+<text x="392" y="94" font-size="11" fill="currentColor">glyph index</text>
+<text x="392" y="108" font-size="11" fill="currentColor">atlas sample</text>
+
+<rect x="585" y="40" width="140" height="72" fill="none" stroke="currentColor"></rect>
+<text x="597" y="62" font-size="13" fill="currentColor">Grain + vignette</text>
+<text x="597" y="80" font-size="11" fill="currentColor">hash noise, 3%</text>
+<text x="597" y="94" font-size="11" fill="currentColor">soft corner falloff</text>
+
+<rect x="770" y="40" width="140" height="72" fill="none" stroke="currentColor"></rect>
+<text x="782" y="62" font-size="13" fill="currentColor">Canvas</text>
+<text x="782" y="80" font-size="11" fill="currentColor">one glyph per cell</text>
+<text x="782" y="94" font-size="11" fill="currentColor">paper and ink</text>
+
+<line x1="150" y1="76" x2="189" y2="76" stroke="currentColor" marker-end="url(#b-arrow)"></line>
+<text x="152" y="66" font-size="11" fill="currentColor">colour + id</text>
+<line x1="335" y1="76" x2="374" y2="76" stroke="currentColor" marker-end="url(#b-arrow)"></line>
+<text x="333" y="66" font-size="11" fill="currentColor">low-res texels</text>
+<line x1="540" y1="76" x2="579" y2="76" stroke="currentColor" marker-end="url(#b-arrow)"></line>
+<text x="538" y="66" font-size="11" fill="currentColor">paper + ink</text>
+<line x1="725" y1="76" x2="764" y2="76" stroke="currentColor" marker-end="url(#b-arrow)"></line>
+<text x="726" y="66" font-size="11" fill="currentColor">final pixels</text>
+
+<rect x="380" y="158" width="160" height="46" fill="none" stroke="currentColor"></rect>
+<text x="392" y="178" font-size="13" fill="currentColor">Font atlas</text>
+<text x="392" y="194" font-size="11" fill="currentColor">DataTexture, at boot</text>
+<line x1="460" y1="158" x2="460" y2="118" stroke="var(--accent)" marker-end="url(#b-arrow-accent)"></line>
+<text x="470" y="142" font-size="11" fill="var(--accent)">coverage</text>
+</svg>
+<figcaption>The whole renderer. Geometry never appears at window
+resolution, and the font atlas is the only texture in the pipeline.</figcaption>
+</figure>
+
+<h3>Choosing a glyph</h3>
+
+<ol>
+<li>
+Average the 2 by 2 block of scene texels under the cell for luminance L.
+</li>
+<li>
+Take the material id M from the alpha of the texel nearest the cell
+centre, never a blend of four.
+</li>
+<li>
+Sobel the low-resolution luminance for edge strength and direction.
+</li>
+<li>If the edge is strong, quantise its direction to four and pick from
+the edge set.</li>
+<li>
+Otherwise, if M is water, pick from the water cycle on time and a
+per-cell hash, so the surface moves while the camera stands still.
+</li>
+<li>
+Otherwise index the ramp for M by L, nudged by a per-cell dither so
+boundaries break up instead of drawing a seam.
+</li>
+<li>
+Sample the atlas at the cell-local position for coverage, mix paper
+toward ink[M] by it, then grain and vignette.
+</li>
+</ol>
+
+<pre><code>vec2 cell   = floor(gl_FragCoord.xy / cellPx);
+vec2 uv     = (cell + 0.5) * cellPx / resolution;
+vec4 s      = texture2D(sceneTex, uv);
+float L     = dot(s.rgb, vec3(0.299, 0.587, 0.114));
+int   M     = int(s.a * 255.0 + 0.5);
+vec2  g     = sobel(sceneTex, uv);
+float e     = length(g);
+int idx;
+if (e &gt; EDGE_THRESHOLD) {
+    idx = edgeGlyph(atan(g.y, g.x));
+} else if (M == MAT_WATER) {
+    idx = waterGlyph(time, hash2(cell));
+} else {
+    idx = rampGlyph(M, L + dither(cell) * 0.04);
+}
+vec2  inCell = fract(gl_FragCoord.xy / cellPx);
+float cov    = texture2D(atlas, atlasUV(idx, inCell)).r;
+vec3  col    = mix(paper, ink[M], cov);
+col += (hash2(gl_FragCoord.xy + timeSeed) - 0.5) * 0.03;
+col *= vignette(uv);
+gl_FragColor = vec4(col, 1.0);</code></pre>
+
+<h3>Palette</h3>
+
+<p>Four keyframes, interpolated across about 90 seconds of game time at
+each edge. Paper and ink swap at night, the one moment the screen changes
+character rather than temperature.</p>
+
+<div class="tod">
+<div style="background:#EBE9E2;color:#26292A"><b>Day</b>paper #EBE9E2<br>ink #26292A</div>
+<div style="background:#D9D3C6;color:#3A3B3E"><b>Dusk</b>paper #D9D3C6<br>ink #3A3B3E</div>
+<div style="background:#1A1C1B;color:#D6D4CC"><b>Night</b>paper #1A1C1B<br>ink #D6D4CC</div>
+<div style="background:#DDDAD2;color:#2E3133"><b>Dawn</b>paper #DDDAD2<br>ink #2E3133</div>
+</div>
+
+<p>Six biome inks, at their daytime values. At night each is lifted
+toward the pale ink and keeps its hue, so a forest at night is still
+greener than stone.</p>
+
+<div class="swatches">
+<div class="sw"><i style="background:#68796C"></i><b>Grass</b><span>#68796C</span></div>
+<div class="sw"><i style="background:#4F5F52"></i><b>Forest</b><span>#4F5F52</span></div>
+<div class="sw"><i style="background:#7A746C"></i><b>Stone</b><span>#7A746C</span></div>
+<div class="sw"><i style="background:#A8956A"></i><b>Sand</b><span>#A8956A</span></div>
+<div class="sw"><i style="background:#969B9E"></i><b>Snow</b><span>#969B9E</span></div>
+<div class="sw"><i style="background:#6A7F8F"></i><b>Water</b><span>#6A7F8F</span></div>
+</div>
+
+<p>
+The rule behind every value: nothing passes about 15 percent saturation.
+These are papers and inks with a lean, not colours. A saturated green
+would read as a video game instantly.
+</p>
+
+<h3>Glyph sets</h3>
+
+<p>Ramps are sorted by measured ink coverage at boot, not by hand, so
+swapping the font reorders them and they stay monotonic in brightness.</p>
+
+<div class="scroll">
+<table>
+<thead><tr><th>Material</th><th>Glyphs</th><th>Note</th></tr></thead>
+<tbody>
+<tr><td>Grass</td><td><span class="glyphs">&nbsp; . , ' : ;</span></td><td>Starts with a blank. Open ground is mostly paper.</td></tr>
+<tr><td>Forest</td><td><span class="glyphs">&nbsp; . , ' : ;</span></td><td>Same ramp, forest ink. The trees are geometry, not glyphs.</td></tr>
+<tr><td>Stone</td><td><span class="glyphs">. : % # @</span></td><td>The only set that reaches full coverage.</td></tr>
+<tr><td>Sand</td><td><span class="glyphs">. : &deg;</span></td><td>Three steps. Beaches should look thin.</td></tr>
+<tr><td>Snow</td><td><span class="glyphs">. * +</span></td><td>Pale ink on dark paper reads as glare.</td></tr>
+<tr><td>Water</td><td><span class="glyphs">~ - &asymp; _</span></td><td>Cycles on time plus a per-cell hash. The tilde is the name.</td></tr>
+<tr><td>Edges</td><td><span class="glyphs">| - / \</span></td><td>Chosen by Sobel direction, overrides the ramp.</td></tr>
+<tr><td>Sky, day</td><td><span class="glyphs">&nbsp;</span></td><td>Blank. Paper is the sky.</td></tr>
+<tr><td>Sky, night</td><td><span class="glyphs">.</span></td><td>Sparse stars hashed on view direction, so they hold still.</td></tr>
+<tr><td>Letters</td><td><span class="glyphs">A B C &hellip; Z</span></td><td>Monoliths only. The only letters in the world.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>The letters</h3>
+
+<p>
+The world is written in punctuation. Every glyph the terrain can make is
+a mark, with one exception: a monolith carries a single capital fixed by
+its region hash, legible from far off because nothing else on screen is
+letter-shaped.
+</p>
+
+<p>
+Press <kbd>J</kbd> and the journal shows the alphabet, the letters you
+have stood next to filled in and the rest faint. No counter, no
+percentage, no congratulation, and nothing ever explains what it is for.
+A player who notices has a reason to walk for months. That is the whole
+long game, for one overlay and one store.
+</p>
+
+<h3>What is deliberately absent</h3>
+
+<ul>
+<li>
+<b>No bloom.</b> It exists to make bright pixels feel bright, and the brightest
+thing here is a filled character.
+</li>
+<li>
+<b>No chromatic aberration.</b> A lens artefact, and there is no lens.
+</li>
+<li>
+<b>No HUD.</b> The seed shows in tiny type at the bottom left for a few
+seconds after load, then goes.
+</li>
+<li>
+<b>No textures.</b> One font file is the only asset in the repository,
+and every surface is flat vertex colour until the pass gives it a
+texture made of characters.
+</li>
+<li>
+<b>No sharp edges.</b> Nothing is antialiased, and no pass tries to
+recover detail the target threw away.
+</li>
+</ul>
+
+<hr>
+
+<h2 id="world">The world</h2>
+
+<h3>Scale</h3>
+
+<p>
+One unit is one metre, in every file. The numbers below are the whole
+spatial budget, chosen together: chunks small enough to build in three
+milliseconds, a render radius wide enough that the fog ends before the
+chunks do, and a prefetch ring one chunk beyond that.
+</p>
+
+<div class="scroll">
+<table>
+<thead><tr><th>Quantity</th><th>Value</th><th>Note</th></tr></thead>
+<tbody>
+<tr><td>Chunk</td><td class="num">64 &times; 64 m</td><td>Addressed by integer (cx, cz)</td></tr>
+<tr><td>Vertex spacing</td><td class="num">2 m</td><td>Coarse on purpose. The glyph pass hides it.</td></tr>
+<tr><td>Vertices per chunk</td><td class="num">33 &times; 33 = 1,089</td><td>2,048 triangles, edges shared with neighbours</td></tr>
+<tr><td>Render radius</td><td class="num">6 chunks, 384 m</td><td>About 169 chunks visible at most</td></tr>
+<tr><td>Prefetch radius</td><td class="num">7 chunks, 448 m</td><td>One ring of work always ahead of the eye</td></tr>
+<tr><td>Fog start</td><td class="num">120 m</td><td>Exponential, colour equals paper</td></tr>
+<tr><td>Fog end</td><td class="num">360 m</td><td>Inside the render radius, so chunks never pop in</td></tr>
+<tr><td>Region</td><td class="num">512 &times; 512 m</td><td>8 &times; 8 chunks, the unit landmarks live in</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>
+At 2.5 m/s a ridge a kilometre off is about seven minutes away, and
+there is no sprint. That is the point, and every number above exists to
+hold those seven minutes at 60 frames per second.
+</p>
+
+<h3>Height</h3>
+
+<p>
+Four layers of noise, summed, with the ridged layer gated so mountains
+grow only on land. Without that gate, ridges run out into the sea and
+the coastline turns to gravel.
+</p>
+
+<div class="scroll">
+<table>
+<thead><tr><th>Layer</th><th>Wavelength</th><th>Amplitude</th><th>Role</th></tr></thead>
+<tbody>
+<tr><td>Continent</td><td class="num">~2 km</td><td class="num">&plusmn;110 m</td><td>Decides land and sea, and nothing else</td></tr>
+<tr><td>Ridges</td><td class="num">~400 m</td><td class="num">up to +90 m</td><td>Ridged noise, only where continent &gt; 0</td></tr>
+<tr><td>Hills</td><td class="num">~100 m</td><td class="num">&plusmn;18 m</td><td>The shape you actually walk over</td></tr>
+<tr><td>Detail</td><td class="num">~12 m</td><td class="num">&plusmn;1.5 m</td><td>Texture for the edge filter to find</td></tr>
+<tr><td>Domain warp</td><td class="num">~700 m</td><td class="num">~60 m offset</td><td>Applied to x and z before any layer is sampled</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>
+The warp is the cheapest thing on this page. Plain summed noise makes
+blobs that read as noise. Bending the input coordinates first gives
+valleys that bend and coastlines that are not circles.
+</p>
+
+<pre><code>export function heightAt(x: number, z: number): number {
+  const wx = x + warp(x, z, 700) * 60;
+  const wz = z + warp(z + 811.3, x - 47.9, 700) * 60;
+  const continent = fbm(wx / 2000, wz / 2000, 4) * 110;
+  let h = continent;
+  if (continent &gt; 0) {
+    const r = ridged(wx / 400, wz / 400, 3);
+    h += r * 90 * smoothstep(0, 25, continent);
+  }
+  h += fbm(wx / 100, wz / 100, 3) * 18;
+  h += fbm(wx / 12, wz / 12, 2) * 1.5;
+  return h;
+}</code></pre>
+
+<p>
+Sea level is zero. The water plane sits at y = 0 with a ripple in the
+vertex shader, which never touches the height field or where you can
+walk.
+</p>
+
+<figure>
+<div class="plate">
+<canvas id="profile" width="900" height="240" aria-label="Height profile: the four noise layers and their sum along a 3 km line"></canvas>
+</div>
+<figcaption>The four layers along a 3 km line, drawn live from the same
+rules: continent, ridges where the continent is above sea level, hills,
+detail, and their sum. Sea level is the horizontal rule.</figcaption>
+</figure>
+
+<h3>Biomes</h3>
+
+<p>
+Biome is a material id per vertex, from height, slope and a separate
+moisture field. A lookup, not a simulation, tested in this order.
+</p>
+
+<div class="scroll">
+<table>
+<thead><tr><th>Biome</th><th>Condition</th><th>Ink</th><th>Ground glyphs</th></tr></thead>
+<tbody>
+<tr><td>Ocean</td><td>h &lt; 0</td><td>#6A7F8F</td><td><span class="glyphs">~ - &asymp; _</span></td></tr>
+<tr><td>Beach</td><td>0 &le; h &lt; 3</td><td>#A8956A</td><td><span class="glyphs">. : &deg;</span></td></tr>
+<tr><td>Snow</td><td>h &gt; 125</td><td>#969B9E</td><td><span class="glyphs">. * +</span></td></tr>
+<tr><td>Stone</td><td>slope &gt; 40&deg; or h &gt; 90</td><td>#7A746C</td><td><span class="glyphs">. : % # @</span></td></tr>
+<tr><td>Forest</td><td>moisture &gt; 0.12 and h &lt; 65</td><td>#4F5F52</td><td><span class="glyphs">&nbsp; . , ' : ;</span></td></tr>
+<tr><td>Grassland</td><td>everything else</td><td>#68796C</td><td><span class="glyphs">&nbsp; . , ' : ;</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<p>
+Boundaries are dithered in the glyph pass, not blended in the mesh,
+which would produce inks belonging to neither biome. A cell near a
+border gets a small hash offset added to its luminance before the ramp
+lookup, so the two sets interleave for a few cells and no seam appears.
+</p>
+
+<h3>Props</h3>
+
+<p>
+Trees are what make a forest read. Without them, forest is a slightly
+darker grassland and nobody notices entering one. Each forest chunk is
+walked on a 3 metre grid, a hash decides with probability 0.3 whether a
+tree stands at a cell, and its height comes from the chunk's own height
+array. They are instanced cones on thin trunk lines, one InstancedMesh
+per chunk. The pass sees only dark cones with strong edges, which is
+what produces the <span class="glyphs">^ Y T !</span> silhouettes.
+</p>
+
+<p>
+The ground under a tree stays grass. Nothing is carved into the height
+field and no prop is load-bearing for collision. Rocks follow the same
+rule, far sparser, on stone.
+</p>
+
+<h3>Landmarks</h3>
+
+<p>The world is divided into 512 metre regions, and a hash of the region
+coordinates gives one in nine a landmark. Close enough that a long walk
+usually finds something, far enough that finding it counts.</p>
+
+<p>
+Five kinds. The letter monolith is the most common, its letter the
+region hash modulo 26, then a stone ring, a lone tall tree, a still pool
+and a shelter. Each is a few instanced boxes or cones, because the pass
+reduces it to a dozen cells anyway.
+</p>
+
+<p>
+Placement is the part that matters. A landmark goes at the highest local
+point within 100 metres of the region centre, not at the centre, so on
+broken ground it sits on a crest and breaks the fog line. You see it
+from far off and choose to walk to it. Each discovery is written to
+IndexedDB under the region key, which is how the journal fills.
+</p>
+
+<h3>Deferred</h3>
+
+<p>
+Rivers, caves, weather, animals and buildings are out. Each wants a
+system the rest of the world does not have: flow accumulation, a second
+mesh topology, a simulation clock, behaviour. What ships is only
+terrain.
+</p>
+
+<hr>
+
+<h2 id="move">Moving through it</h2>
+
+<p>
+Movement has one job, to make distance felt without making it tedious.
+Everything is eased and there is no speed above a walk.
+</p>
+
+<div class="scroll">
+<table>
+<thead><tr><th>Quantity</th><th>Value</th><th>Note</th></tr></thead>
+<tbody>
+<tr><td>Walk</td><td class="num">2.5 m/s</td><td>The default, and the fastest the game goes</td></tr>
+<tr><td>Stroll</td><td class="num">1.2 m/s</td><td>Hold <kbd>Shift</kbd>. There is no sprint.</td></tr>
+<tr><td>Acceleration</td><td class="num">0.6 s</td><td>To full speed, eased</td></tr>
+<tr><td>Deceleration</td><td class="num">0.4 s</td><td>To rest, slightly quicker than starting</td></tr>
+<tr><td>Camera lag</td><td class="num">0.15 s</td><td>Position trails the player, pitch and yaw eased</td></tr>
+<tr><td>Eye height</td><td class="num">1.6 m</td><td>Above the sampled ground</td></tr>
+<tr><td>Mouse look</td><td class="num">0.0022 rad/px</td><td>Pointer lock. Arrow keys turn slowly instead.</td></tr>
+<tr><td>Head bob</td><td>Off</td><td>Off by default, a setting for people who want it</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>
+Ground height is a bilinear sample of the current chunk's height array,
+the same Float32Array the worker produced. No physics engine and no
+collider: the player is a point that reads a number and sits above it.
+</p>
+
+<p>
+Water and slopes push back rather than stop you. You can wade to 1.2
+metres, and past that the part of your movement heading deeper falls
+smoothly to zero, so the sea refuses you without a wall and without a
+message. Slopes over about 45 degrees scale your speed down instead of
+blocking it, so a mountain is climbable if you are patient.
+</p>
+
+<p>
+Drift mode, on <kbd>F</kbd>, hands the walker to the game. It picks a
+heading toward the open horizon, steers away from water and from slopes
+it would rather not climb, and every so often stops to look before
+choosing again. It never arrives, and any input takes control back. This
+is for the second monitor, and also the fastest way to find out whether
+the world is boring.
+</p>
+
+<div class="scroll">
+<table>
+<thead><tr><th>Control</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> or arrows</td><td>Move, and turn slowly with the arrows if the pointer is free</td></tr>
+<tr><td>Mouse</td><td>Look. Click the canvas to lock the pointer.</td></tr>
+<tr><td><kbd>Shift</kbd></td><td>Stroll, held</td></tr>
+<tr><td><kbd>F</kbd></td><td>Drift mode</td></tr>
+<tr><td><kbd>M</kbd></td><td>Map overlay</td></tr>
+<tr><td><kbd>J</kbd></td><td>Journal</td></tr>
+<tr><td><kbd>H</kbd></td><td>Hide all overlays</td></tr>
+<tr><td><kbd>Esc</kbd></td><td>Release the pointer</td></tr>
+<tr><td><kbd>[</kbd> <kbd>]</kbd></td><td>Cell size down and up</td></tr>
+<tr><td><kbd>-</kbd> <kbd>+</kbd></td><td>Volume down and up</td></tr>
+</tbody>
+</table>
+</div>
+
+<p class="small">Touch and gamepad come later, if at all. Version one is
+a desktop browser with a keyboard and a pointer.</p>
+
+<hr>
+
+<h2 id="sound">Sound</h2>
+
+<h3>Rules of restraint</h3>
+
+<p>
+Silence is the feature. After every six to ten notes the scheduler takes
+a mandatory break of 20 to 60 seconds, and during it the only sound is
+wind and, if you are near it, water. A note is considered about every
+3.2 seconds and plays with probability 0.35, so even the talkative
+stretches are mostly gaps. Music that always plays becomes wallpaper,
+then an irritant.
+</p>
+
+<h3>Scales by place</h3>
+
+<p>
+The scale follows the biome under the player and changes on the next
+note, not at the boundary, so a crossing is never audible as a switch.
+</p>
+
+<div class="scroll">
+<table>
+<thead><tr><th>Place</th><th>Scale</th><th>Character</th></tr></thead>
+<tbody>
+<tr><td>Grassland</td><td>C major pentatonic</td><td>Open. No leading tone, so nothing wants to resolve.</td></tr>
+<tr><td>Forest</td><td>C major pentatonic, low drone on the root</td><td>Weight underneath, the notes unchanged</td></tr>
+<tr><td>Near water</td><td>Pentatonic plus F&#9839;</td><td>A lydian colour, the one bright note in the game</td></tr>
+<tr><td>Stone</td><td>A minor pentatonic</td><td>The same pitches rearranged. Darker for free.</td></tr>
+<tr><td>Snow</td><td>A minor pentatonic, one octave up</td><td>Thin, and sparser still</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Instruments</h3>
+
+<p>
+Two. The pad is a sine and a triangle detuned slightly against each
+other, attack 2 to 4 seconds, release 6 to 10, through a lowpass at
+about 1.2 kHz, so no note has an onset you could tap along to. The bell
+is a small two-operator FM voice with a long tail, and it plays in one
+situation: a landmark has just been discovered. It is the only sound
+that means anything, so it stays rare.
+</p>
+
+<h3>Scheduling</h3>
+
+<p>
+The two-clocks pattern, because a JavaScript timer is not accurate
+enough to place a note and the audio clock cannot run your logic. A
+<code>setInterval</code> at 25 milliseconds wakes, looks 100
+milliseconds ahead on <code>currentTime</code>, and schedules anything
+inside that window at a precise audio time. The timer decides when to
+think, never when a sound happens.
+</p>
+
+<pre><code>const LOOKAHEAD = 0.1;
+const TICK_MS = 25;
+
+function tick(ctx: AudioContext, s: SchedulerState) {
+  while (s.nextNoteAt &lt; ctx.currentTime + LOOKAHEAD) {
+    if (s.nextNoteAt &lt; s.silentUntil) {
+      s.nextNoteAt += NOTE_GRID;
+      continue;
+    }
+    if (s.rng() &lt; 0.35) {
+      playPad(ctx, pickNote(scaleFor(s.place)), s.nextNoteAt);
+      if (--s.notesLeft &lt;= 0) beginSilence(s, s.nextNoteAt);
+    }
+    s.nextNoteAt += NOTE_GRID;
+  }
+}</code></pre>
+
+<h3>Ambience</h3>
+
+<p>
+Wind is pink noise through a lowpass, always running, gain rising with
+altitude and walking speed. It is what makes a ridge feel exposed. Water
+is a second noise source gated on being within 30 metres, gain by
+proximity. Both feed a ConvolverNode whose impulse response is generated
+at boot, four seconds of noise with an exponential decay.
+</p>
+
+<h3>Browser rules</h3>
+
+<p>
+No AudioContext exists until the first user gesture, because browsers
+will not allow it and because starting silent is correct anyway. Master
+gain sits at &minus;12 dBFS, low enough to leave on, and the volume keys
+move that one node. No mixer and no mute button, because <kbd>-</kbd>
+held down is one.
+</p>
+<h2 id="arch">Architecture</h2>
+<p>The shape of the program is a loop and a pool. The loop runs on the main thread and is allowed two jobs: react to the person, and draw. The pool is two to four workers with one job: turn three numbers into a chunk. Everything in this section follows from keeping that line clean.</p>
+
+<h3>Threads</h3>
+<p>The split sits at the purity boundary, not at the busy boundary. <code>chunk-gen.ts</code> takes <code>(seed, cx, cz, genVersion)</code> and returns plain arrays. It reads no shared state, touches no DOM, allocates its own output, and has no opinion about when it runs. That is the entire reason it can live somewhere else.</p>
+<p>Everything left on the main thread fails one of those tests. The scene graph, the AudioContext, the canvas, pointer lock, the stores and the player's pose are single-owner state, and pushing any of them across a message boundary would buy a protocol and a fresh class of bugs for nothing. The main thread only draws and reacts; the workers only compute.</p>
+<p>The main thread is allowed to be busy, not blocked, and generation is the only part here that would block it: roughly 8 ms per chunk, and one border crossing can want a dozen at once. The pool is <code>hardwareConcurrency - 1</code> clamped to 2 and 4 (D8). One core stays for the loop, and past four the workers queue against memory bandwidth. They start at boot, because the first crossing is the one you notice.</p>
+
+<figure>
+<svg viewBox="0 0 900 360" role="img" aria-label="Diagram. On the left, a main thread column: input, player, chunk manager, renderer, audio, then UI and persistence, each feeding the next. The chunk manager sends gen(seed, cx, cz) to a pool of two to four workers, each running chunk-gen as a pure function, and the workers return ChunkData with its buffers transferred. The renderer sends geometry and the glyph atlas to the GPU. Persistence writes pose and discoveries to browser storage: localStorage and IndexedDB." font-family="IBM Plex Mono, ui-monospace, monospace">
+<defs>
+<marker id="c-arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker>
+<marker id="c-arw-acc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--accent)"/></marker>
+</defs>
+<g fill="currentColor" font-size="11">
+<text x="30" y="26" opacity=".7">main thread: draws and reacts</text>
+<text x="400" y="26" opacity=".7">workers: compute only</text>
+</g>
+<g fill="none" stroke="currentColor">
+<rect x="30" y="40" width="200" height="36"/>
+<rect x="30" y="92" width="200" height="36"/>
+<rect x="30" y="144" width="200" height="36"/>
+<rect x="30" y="196" width="200" height="36"/>
+<rect x="30" y="248" width="200" height="36"/>
+<rect x="30" y="300" width="200" height="36"/>
+<rect x="400" y="40" width="240" height="174" opacity=".55"/>
+<rect x="416" y="58" width="208" height="42"/>
+<rect x="416" y="104" width="208" height="42"/>
+<rect x="416" y="150" width="208" height="42"/>
+<rect x="690" y="238" width="180" height="42"/>
+<rect x="690" y="297" width="180" height="42"/>
+</g>
+<g fill="currentColor">
+<text x="42" y="57" font-size="12">input</text><text x="42" y="70" font-size="11" opacity=".72">keys, mouse, lock</text>
+<text x="42" y="109" font-size="12">player</text><text x="42" y="122" font-size="11" opacity=".72">pose, eye at 1.6 m</text>
+<text x="42" y="161" font-size="12">chunk manager</text><text x="42" y="174" font-size="11" opacity=".72">desired set, LRU</text>
+<text x="42" y="213" font-size="12">renderer</text><text x="42" y="226" font-size="11" opacity=".72">scene pass, glyph pass</text>
+<text x="42" y="265" font-size="12">audio</text><text x="42" y="278" font-size="11" opacity=".72">scheduler, ambience</text>
+<text x="42" y="317" font-size="12">UI and persistence</text><text x="42" y="330" font-size="11" opacity=".72">overlays, saves</text>
+<text x="428" y="75" font-size="12">worker 1</text><text x="428" y="91" font-size="11" opacity=".72">chunk-gen (pure)</text>
+<text x="428" y="121" font-size="12">worker 2</text><text x="428" y="137" font-size="11" opacity=".72">chunk-gen (pure)</text>
+<text x="428" y="167" font-size="12">worker 3</text><text x="428" y="183" font-size="11" opacity=".72">chunk-gen (pure)</text>
+<text x="702" y="256" font-size="12">GPU</text><text x="702" y="270" font-size="11" opacity=".72">target, then canvas</text>
+<text x="702" y="315" font-size="12">storage</text><text x="702" y="329" font-size="11" opacity=".72">localStorage, IDB</text>
+</g>
+<g fill="none" stroke="currentColor" marker-end="url(#c-arw)">
+<line x1="70" y1="78" x2="70" y2="90"/>
+<line x1="70" y1="130" x2="70" y2="142"/>
+<line x1="70" y1="182" x2="70" y2="194"/>
+<line x1="70" y1="234" x2="70" y2="246"/>
+<line x1="70" y1="286" x2="70" y2="298"/>
+<line x1="234" y1="150" x2="396" y2="150"/>
+<polyline points="232,214 350,214 350,259 686,259"/>
+<line x1="232" y1="318" x2="686" y2="318"/>
+</g>
+<line x1="396" y1="178" x2="234" y2="178" fill="none" stroke="var(--accent)" stroke-width="2" marker-end="url(#c-arw-acc)"/>
+<g fill="currentColor" font-size="11">
+<text x="315" y="142" text-anchor="middle">gen(seed, cx, cz)</text>
+<text x="380" y="252">geometry + atlas</text>
+<text x="380" y="312">pose, discoveries</text>
+</g>
+<g fill="var(--accent)" font-size="11">
+<text x="315" y="194" text-anchor="middle">ChunkData,</text>
+<text x="315" y="207" text-anchor="middle">buffers transferred</text>
+</g>
+</svg>
+<figcaption>The only boundary in the program is the one where purity ends. The accent arrow is the one that moves memory instead of copying it.</figcaption>
+</figure>
+
+<h3>The worker contract</h3>
+<p>Two message types, one of them a reply, and nothing else crosses the line (D14 exists mostly for this file):</p>
+<pre><code>export type GenRequest = {
+  type: 'gen';
+  seed: number;
+  cx: number;
+  cz: number;
+  genVersion: number;
+};
+
+export type Landmark = {
+  kind: 'monolith' | 'ring' | 'tree' | 'pool' | 'shelter';
+  letter?: string;
+  x: number;
+  z: number;
+};
+
+export type ChunkData = {
+  cx: number;
+  cz: number;
+  genVersion: number;
+  heights: Float32Array;
+  materials: Uint8Array;
+  props: Float32Array;
+  landmark: Landmark | null;
+};
+
+export type GenReply = { type: 'chunk' } &amp; ChunkData;
+
+export function transfers(c: ChunkData): Transferable[] {
+  return [c.heights.buffer, c.materials.buffer, c.props.buffer];
+}</code></pre>
+<p>Every array in a reply is allocated in the worker and posted in the transfer list, so the buffers detach there and arrive here without a copy. A chunk is about 4.3 KB of heights, 1.1 KB of materials and a few KB of props. Copying that would survive; transferring makes the cost independent of how fast you walk, and it enforces a rule worth having: a worker never keeps a reference to what it sent. Fresh arrays every call, no pooling.</p>
+<p>Replies are validated on arrival, not on request. If <code>(cx, cz)</code> has left the prefetch radius, or <code>genVersion</code> no longer matches config, the reply is dropped and its buffers become garbage. There is no cancel message: a worker mid-job finishes it, because coordinating a cancellation costs more than the 8 ms it saves.</p>
+
+<h3>Chunk lifecycle</h3>
+<p>A chunk holds exactly one state, and the transitions are the manager. Each frame the desired set is rebuilt: every coordinate inside the prefetch radius of 7, sorted by distance, and anything in it without a record becomes <b>wanted</b>. Wanted chunks enter the queue in distance order, and <b>queued</b> becomes <b>generating</b> the moment a worker is free, so priority lives in the queue rather than in a worker's inbox. A reply makes the chunk <b>ready</b>: arrays on the main thread, nothing uploaded yet.</p>
+<p>Ready becomes <b>built</b> when <code>terrain-mesh</code> and <code>props</code> run, at most two chunks per frame and each under 3 ms. That budget is what keeps a border crossing from becoming a hitch: a backlog costs latency, which fog hides, while a long frame costs smoothness, which nothing hides. Built becomes <b>visible</b> inside the render radius of 6.</p>
+<p>Visible and hidden flip freely. <b>Hidden</b> keeps its geometry and only detaches the mesh, because re-adding is free and rebuilding is not. Eviction is the last resort: once retained chunks pass twice the visible count, the least recently visible hidden chunk is disposed, geometry and heights together. Nothing is written on the way out (D7); coming back means generating it again, byte for byte the same.</p>
+
+<figure>
+<svg viewBox="0 0 920 220" role="img" aria-label="State machine. Left to right: wanted, queued, generating, ready, built, visible, with triggers in prefetch radius, worker free, reply received, at most two builds per frame, and in render radius. Generating has a dashed edge down to dropped, labelled no longer wanted or version mismatch. Visible and hidden exchange two arrows, out of render radius and back in radius. Hidden leads to evicted, labelled LRU past twice the visible count." font-family="IBM Plex Mono, ui-monospace, monospace">
+<defs>
+<marker id="c-tick" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker>
+</defs>
+<g fill="none" stroke="currentColor">
+<rect x="28" y="70" width="112" height="40"/>
+<rect x="178" y="70" width="112" height="40"/>
+<rect x="328" y="70" width="112" height="40"/>
+<rect x="478" y="70" width="112" height="40"/>
+<rect x="628" y="70" width="112" height="40"/>
+<rect x="328" y="156" width="112" height="40"/>
+<rect x="628" y="156" width="112" height="40"/>
+<rect x="778" y="156" width="112" height="40"/>
+</g>
+<rect x="778" y="70" width="112" height="40" fill="none" stroke="var(--accent)" stroke-width="2"/>
+<g fill="currentColor">
+<text x="40" y="88" font-size="12">wanted</text><text x="40" y="102" font-size="11" opacity=".72">in desired set</text>
+<text x="190" y="88" font-size="12">queued</text><text x="190" y="102" font-size="11" opacity=".72">by distance</text>
+<text x="340" y="88" font-size="12">generating</text><text x="340" y="102" font-size="11" opacity=".72">in a worker</text>
+<text x="490" y="88" font-size="12">ready</text><text x="490" y="102" font-size="11" opacity=".72">data in hand</text>
+<text x="640" y="88" font-size="12">built</text><text x="640" y="102" font-size="11" opacity=".72">geometry made</text>
+<text x="340" y="174" font-size="12">dropped</text><text x="340" y="188" font-size="11" opacity=".72">reply ignored</text>
+<text x="640" y="174" font-size="12">hidden</text><text x="640" y="188" font-size="11" opacity=".72">geometry kept</text>
+<text x="790" y="174" font-size="12">evicted</text><text x="790" y="188" font-size="11" opacity=".72">disposed</text>
+</g>
+<text x="790" y="88" font-size="12" fill="var(--accent)">visible</text><text x="790" y="102" font-size="11" fill="var(--accent)" opacity=".8">in the scene</text>
+<g fill="none" stroke="currentColor" marker-end="url(#c-tick)">
+<line x1="144" y1="90" x2="174" y2="90"/>
+<line x1="294" y1="90" x2="324" y2="90"/>
+<line x1="444" y1="90" x2="474" y2="90"/>
+<line x1="594" y1="90" x2="624" y2="90"/>
+<line x1="744" y1="90" x2="774" y2="90"/>
+<line x1="784" y1="112" x2="706" y2="154"/>
+<line x1="726" y1="154" x2="804" y2="112"/>
+<line x1="744" y1="176" x2="774" y2="176"/>
+</g>
+<line x1="384" y1="112" x2="384" y2="152" fill="none" stroke="currentColor" stroke-dasharray="4 4" marker-end="url(#c-tick)"/>
+<g fill="currentColor" font-size="11">
+<text x="159" y="58" text-anchor="middle">in prefetch radius</text>
+<text x="309" y="58" text-anchor="middle">worker free</text>
+<text x="459" y="58" text-anchor="middle">reply received</text>
+<text x="609" y="58" text-anchor="middle">&le; 2 per frame</text>
+<text x="759" y="58" text-anchor="middle">in render radius</text>
+<text x="394" y="130">no longer wanted /</text>
+<text x="394" y="144">version mismatch</text>
+<text x="698" y="130" text-anchor="end">out of render radius</text>
+<text x="698" y="146" text-anchor="end">back in radius</text>
+<text x="759" y="212" text-anchor="middle">LRU past 2&times; visible</text>
+</g>
+</svg>
+<figcaption>Every chunk sits in one of these states. The two edges that protect the frame rate are the build budget into built and the LRU into evicted.</figcaption>
+</figure>
+
+<h3>Frame order</h3>
+<p>One <code>requestAnimationFrame</code> callback, always in this order, because later steps read what earlier ones wrote:</p>
+<ol>
+<li>Drain input: key state, accumulated mouse delta, pointer-lock changes, one-shot keys such as <kbd>M</kbd>, <kbd>J</kbd> and <kbd>F</kbd>.</li>
+<li>Step the player: accelerate toward the wanted velocity, sample terrain height bilinearly, set the eye 1.6 m above it, apply the slope and wading rules.</li>
+<li>Ease the camera: position lags by about 0.15 s, yaw and pitch ease separately, so the world settles after you stop rather than with you.</li>
+<li>Rebuild the desired set from the new position and post requests to idle workers, nearest first.</li>
+<li>Drain replies: validate, keep or drop, build at most two chunks, add or remove meshes, evict past the LRU limit.</li>
+<li>Advance time of day: fog colour, sun direction, paper and ink, plus the water and glyph animation uniforms.</li>
+<li>Render: the scene into the target at roughly 290 &times; 90 px, then the glyph pass onto the canvas.</li>
+<li>Bookkeeping: hand the scheduler the current biome, altitude and speed (it keeps its own clock), redraw an open overlay, mark the save dirty for the 5 s debounce.</li>
+</ol>
+
+<h3>Files</h3>
+<pre>tilde/
+  index.html
+  package.json  vite.config.ts  tsconfig.json
+  src/
+    main.ts                 boot and loop
+    config.ts               every tunable in one place
+    world/
+      hash.ts               mix32, sfc32
+      noise.ts              simplex2, fbm, warp
+      biomes.ts
+      landmarks.ts
+      chunk-gen.ts          (seed,cx,cz) -&gt; ChunkData, pure
+      gen.worker.ts         worker entry
+      chunk-manager.ts      desired set, pool, LRU
+      terrain-mesh.ts       ChunkData -&gt; BufferGeometry
+      props.ts              InstancedMesh trees and rocks
+    render/
+      renderer.ts
+      glyph-atlas.ts        rasterise font, measure coverage, sort ramps
+      glyph-pass.ts
+      sky.ts                sun, fog, palette keyframes
+      shaders/terrain.vert.glsl  terrain.frag.glsl  glyph.frag.glsl
+    player/
+      controller.ts
+      camera.ts
+      drift.ts
+    audio/
+      engine.ts  scheduler.ts  composer.ts  ambience.ts  reverb.ts
+    state/
+      store.ts              localStorage
+      db.ts                 IndexedDB
+    ui/
+      overlay.ts  journal.ts  map.ts
+  fonts/IBMPlexMono-Regular.ttf   the only asset
+  tests/
+    determinism.test.ts  hash.test.ts  atlas.test.ts</pre>
+<p>The dependency list is four names and one file: <code>three</code> at runtime, <code>vite</code>, <code>typescript</code> and <code>vitest</code> for building and checking, and <code>IBMPlexMono-Regular.ttf</code>, the only thing in the repository nobody here wrote. A fifth name in <code>package.json</code> means something in this document has quietly changed.</p>
+
+<h2 id="persist">Memory and sharing</h2>
+<p>The world is never saved, because it cannot be lost. What is saved is small, and splits by whether it has a bound (D10): settings and pose are a handful of numbers, while discoveries and visited chunks grow for as long as you walk.</p>
+<div class="scroll"><table>
+<thead><tr><th>Key or store</th><th>Store</th><th>Contents</th><th>When written</th></tr></thead>
+<tbody>
+<tr><td>tilde.settings</td><td>localStorage</td><td>cell size, volume, reduce grain, head bob</td><td>on change, 5 s debounce</td></tr>
+<tr><td>tilde.world</td><td>localStorage</td><td>seed (base36), genVersion</td><td>once, when a world is first opened</td></tr>
+<tr><td>tilde.pose</td><td>localStorage</td><td>x, z, yaw, pitch, timeOfDay</td><td>5 s debounce and on pagehide</td></tr>
+<tr><td>discoveries</td><td>IndexedDB tilde v1</td><td>id (regionKey), kind, letter, x, z, at</td><td>once, on standing next to a landmark</td></tr>
+<tr><td>visited</td><td>IndexedDB tilde v1</td><td>key ("cx,cz")</td><td>batched, as chunks first become visible</td></tr>
+</tbody>
+</table></div>
+<p>A world lives in its URL. The seed is read from <code>?seed=&lt;base36&gt;</code>; if it is absent, boot rolls a random 32-bit seed and writes it back with <code>history.replaceState</code>, without a reload, so the address bar holds a shareable link before the first frame lands. Nothing else goes in the URL: no pose, no time of day, no discoveries. A link is a place, not a state of mind.</p>
+<p>Two people with the same seed stand in the same world and keep their own journals. That is exactly as much multiplayer as this game wants (D5).</p>
+<p><code>GEN_VERSION</code> is an integer in <code>config.ts</code>, written into <code>tilde.world</code> when a world is first opened and never rewritten. It is the promise behind the unchanging pillar, and any edit that moves a vertex breaks it: a new octave, a different warp offset, a corrected sign, a nudged biome threshold. So the rule is: bump the integer, keep the old generator in the source, and switch on the version stored with the save, so a world made on version 3 keeps calling version 3 code forever. Old generators are pure functions with no dependencies, so keeping one costs a file and a case in a switch. The alternative, a migration or a friendly dialog, is a way of telling somebody their world is gone.</p>
+
+<h2 id="budget">Budgets and risks</h2>
+<h3>Performance budget</h3>
+<p>These numbers decide whether the world feels calm or only looks it. A dev overlay behind <code>?dev=1</code> shows the ones that drift, in the same font as everything else.</p>
+<div class="scroll"><table>
+<thead><tr><th>Target</th><th>Value</th><th>How it is measured</th></tr></thead>
+<tbody>
+<tr><td>Frame rate</td><td class="num">60 fps</td><td>rolling frame-time histogram on an integrated GPU at 1440p; the worst 1% of frames must stay under 20 ms</td></tr>
+<tr><td>Scene target</td><td class="num">290 &times; 90 px</td><td>derived from cell size and viewport, printed at boot</td></tr>
+<tr><td>Draw calls</td><td class="num">&lt; 250</td><td>renderer.info.render.calls, sampled once a second</td></tr>
+<tr><td>Chunk generation</td><td class="num">&lt; 8 ms</td><td>performance.now around the pure call inside the worker, reported with the reply</td></tr>
+<tr><td>Mesh build</td><td class="num">&lt; 3 ms</td><td>timed on the main thread; two per frame is the budget, so 6 ms is the worst case</td></tr>
+<tr><td>First frame</td><td class="num">&lt; 2 s</td><td>navigation start to first glyph pass, cold cache</td></tr>
+<tr><td>Memory</td><td class="num">&lt; 300 MB</td><td>tab memory after twenty minutes of walking in one direction</td></tr>
+<tr><td>Bundle</td><td class="num">&lt; 800 KB</td><td>production build including the font, gzipped transfer size</td></tr>
+</tbody>
+</table></div>
+<h3>Risks</h3>
+<div class="scroll"><table>
+<thead><tr><th>Risk</th><th>What it would feel like</th><th>Mitigation</th></tr></thead>
+<tbody>
+<tr><td>Terrain reads as noise blobs</td><td>walking without arriving; every hill the same hill</td><td>domain warp, a ridged layer on land only, 2 km wavelengths, landmarks on regional high points</td></tr>
+<tr><td>The glyph screen feels busy</td><td>eye strain in two minutes; nothing to rest on</td><td>bigger cells, low contrast, two inks per biome, heavy fog, dithered boundaries</td></tr>
+<tr><td>Hitches at chunk borders</td><td>a stutter every twenty seconds, exactly when you look around</td><td>prefetch radius 7, two builds per frame, generation in workers</td></tr>
+<tr><td>The music becomes annoying</td><td>reaching for the mute key in the first ten minutes</td><td>note probability 0.35, mandatory silence of 20 to 60 s, long envelopes, one volume key</td></tr>
+<tr><td>Pointer lock confuses people</td><td>a cursor that vanishes, a screen that will not respond</td><td>arrow keys turn without lock, <kbd>Esc</kbd> releases, one line of prompt text on load</td></tr>
+<tr><td>A generator change breaks saved worlds</td><td>your place is somewhere else now, and nobody can say where</td><td>GEN_VERSION stored with the world, old generators kept behind a switch</td></tr>
+<tr><td>Mobile performance</td><td>a slideshow on a phone, or a melted battery</td><td>out of scope for v1; desktop first, touch and gamepad later</td></tr>
+</tbody>
+</table></div>
+
+<h2 id="plan">Build order</h2>
+<ol>
+<li><b>M0 Scaffold, flat plane, glyph pass.</b> Vite and TypeScript strict, the atlas rasterised at boot with ramps sorted by coverage, a render target, and the glyph pass over one plane and one cone. Done when both read as glyphs with fog and the day palette at 60 fps.</li>
+<li><b>M1 Chunked terrain in workers, walking.</b> Hash and noise, the pure generator, the pool, the manager with its states and LRU, terrain meshing, and a controller that samples height. Done when you can walk five minutes in any direction at 60 fps and turning around gives back exactly the terrain you left.</li>
+<li><b>M2 Biomes, props, day cycle, water.</b> Material ids and per-biome inks, instanced trees and rocks, the four palettes with their 90 s crossfades, the water plane and its ripple. Done when a screenshot could be mistaken for the hero at the top of this page.</li>
+<li><b>M3 Audio.</b> The two-clock scheduler, pads on the per-biome scales, wind and water beds, the generated reverb, and the silence rule that makes all of it bearable. Done when you can leave it running for an hour in a window you are not looking at.</li>
+<li><b>M4 Persistence, seed URL, journal, map, landmarks.</b> Region hashing and landmark placement, discovery detection, both stores, the two overlays. Done when a reload puts you back where you stood, and a friend opening your link sees your world.</li>
+<li><b>M5 Polish: easing, drift mode, settings, grain, hosting.</b> Camera lag and eased turning, drift mode on <kbd>F</kbd>, the settings the keys reach, grain and vignette tuning, a static deploy. Done when it is on a URL you would send to somebody without explaining it.</li>
+</ol>
+<p>The core is M0 to M2, and for anyone who has written a game loop before that is a weekend of evenings: the glyph pass is one shader, the manager is a state machine over a map, the noise stack is two hundred lines with tests. M3 to M5 are a few more evenings, mostly typing. The honest note is that M2 and M3 are not where the code is hard, they are where taste decides. Ramp order, cell size, where the fog starts, how often a note lands: those get tuned by standing in the world and changing one number at a time, which is most of the calendar and almost none of the work.</p>
+
+<h2 id="open">Open calls</h2>
+<ul>
+<li><b>The name.</b> Tilde is a placeholder that has started to sound right, which is how placeholders win. Does the water glyph keep the title, or does the title stop being an in-joke about punctuation before anyone else reads it?</li>
+<li><b>Night: invert or dim?</b> A true inversion, pale ink on dark paper, is the best frame in the palette and the only one that stops looking like a page; dimming keeps the paper metaphor for the whole cycle. Which matters more at three in the morning?</li>
+<li><b>Do the letters spell anything?</b> A hidden word pays off the long game once and turns every later monolith into an errand; an alphabet that stays an alphabet keeps the quiet and risks amounting to nothing. Is the reward the word, or the filled-in page?</li>
+<li><b>Default cell size.</b> 10 &times; 18 is the default and <kbd>[</kbd> and <kbd>]</kbd> move it. Bigger cells are softer, calmer and cheaper; smaller cells show the terrain that was actually built. Which one should somebody get in their first thirty seconds, before they know the keys exist?</li>
+<li><b>A tiny compass, or nothing?</b> A compass makes "go back the way you came" possible and gives the map overlay an anchor; it is also the first piece of HUD on a screen whose whole argument is that it has none. Is direction worth the exception?</li>
+</ul>
+<p class="small">All of the above is deliberately over-specified, so that the build can start on a Friday evening without re-deciding anything first. Every number in it is a starting value and not a law: change them in <code>config.ts</code>, from inside the world, while walking.</p>
+</div>
+<script>
+(function(){
+  function hash2(x,y){var h=(x*374761393+y*668265263)|0;h=Math.imul(h^(h>>>13),1274126177);return((h^(h>>>16))>>>0)/4294967296;}
+  function sm(t){return t*t*(3-2*t);}
+  function val(x,y){var xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi;var a=hash2(xi,yi),b=hash2(xi+1,yi),c=hash2(xi,yi+1),d=hash2(xi+1,yi+1);var u=sm(xf),v=sm(yf);return(a*(1-u)+b*u)*(1-v)+(c*(1-u)+d*u)*v;}
+  function fbm(x,y,o){var s=0,a=.5,f=1,n=0;for(var i=0;i<o;i++){s+=a*(val(x*f,y*f)*2-1);n+=a;a*=.5;f*=2;}return s/n;}
+  function parts(x,z){
+    var wx=x+60*fbm(x*.0015+7.3,z*.0015+1.1,3),wz=z+60*fbm(x*.0015-3.7,z*.0015+9.9,3);
+    var c=fbm(wx*.0009,wz*.0009,4),r=1-Math.abs(fbm(wx*.005,wz*.005,4)),h=fbm(wx*.02,wz*.02,3);
+    var cont=c*110+12,ridge=r*r*90*Math.max(0,c+.25),hills=h*14;
+    return [cont,ridge,hills,cont+ridge+hills];
+  }
+  function moist(x,z){return fbm(x*.004+100,z*.004+100,2);}
+  function lerp(a,b,t){return a+(b-a)*t;}
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function hero(){
+    var cv=document.getElementById('hero'),fb=document.getElementById('hero-fallback');if(!cv)return;
+    var ctx=cv.getContext('2d',{alpha:false});if(!ctx)return;
+    var COLS=100,ROWS=36,CW=8,CH=14,dpr=Math.min(2,window.devicePixelRatio||1);
+    cv.width=COLS*CW*dpr;cv.height=ROWS*CH*dpr;cv.style.aspectRatio=(COLS*CW)+' / '+(ROWS*CH);
+    ctx.scale(dpr,dpr);ctx.textBaseline='top';
+    var FONT='500 '+(CH-1)+'px "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+    var CS=16,SP=4,chunks=new Map(),lastKey=NaN,lastC=null;
+    function chunk(cx,cz){var k=(cx+32768)*65536+(cz+32768);if(k===lastKey)return lastC;var c=chunks.get(k);
+      if(!c){c={h:new Float32Array(CS*CS),m:new Float32Array(CS*CS)};for(var j=0;j<CS;j++)for(var i=0;i<CS;i++){var x=(cx*CS+i)*SP,z=(cz*CS+j)*SP;c.h[j*CS+i]=parts(x,z)[3];c.m[j*CS+i]=moist(x,z);}chunks.set(k,c);}
+      lastKey=k;lastC=c;return c;}
+    function lat(i,j){var cx=Math.floor(i/CS),cz=Math.floor(j/CS);return chunk(cx,cz).h[(j-cz*CS)*CS+(i-cx*CS)];}
+    function latm(i,j){var cx=Math.floor(i/CS),cz=Math.floor(j/CS);return chunk(cx,cz).m[(j-cz*CS)*CS+(i-cx*CS)];}
+    var S={h:0,slope:0,light:0,m:0};
+    function sample(x,z){var gx=x/SP,gz=z/SP,x0=Math.floor(gx),z0=Math.floor(gz),fx=gx-x0,fz=gz-z0;
+      var a=lat(x0,z0),b=lat(x0+1,z0),c=lat(x0,z0+1),d=lat(x0+1,z0+1);
+      S.h=(a*(1-fx)+b*fx)*(1-fz)+(c*(1-fx)+d*fx)*fz;S.slope=Math.abs(b-a)+Math.abs(c-a);S.light=Math.max(0,Math.min(1,.5+(a-b)*.06));S.m=latm(x0,z0);}
+    var DAY={paper:[235,233,226],grass:[104,121,108],forest:[79,95,82],stone:[122,116,108],sand:[168,149,106],snow:[150,155,158],water:[106,127,143],ink:[38,41,42]};
+    var NIGHT={paper:[26,28,27],grass:[138,156,142],forest:[111,131,111],stone:[154,148,140],sand:[185,167,132],snow:[185,190,192],water:[138,161,178],ink:[214,212,204]};
+    var MATS=['grass','stone','sand','snow','water','forest','ink'];
+    var ramps=[[' ','.',',',"'",':',';'],['.',':','%','#','@'],[' ','.','.',':',':'],[' ',' ','.','*','+'],['~','-','~','~','-','~']];
+    var trees=['^','Y','T','!'];
+    var ccache=new Map();
+    function colour(mi,fogL,todL,paper){var k=mi*4096+fogL*64+todL;var s=ccache.get(k);if(s)return s;var t=todL/40,f=fogL/10;var n=MATS[mi];var a=DAY[n],b=NIGHT[n];
+      var r=lerp(lerp(a[0],b[0],t),paper[0],f),g=lerp(lerp(a[1],b[1],t),paper[1],f),bl=lerp(lerp(a[2],b[2],t),paper[2],f);
+      s='rgb('+(r|0)+','+(g|0)+','+(bl|0)+')';ccache.set(k,s);return s;}
+    var ch=new Array(COLS*ROWS),cm=new Uint8Array(COLS*ROWS),cf=new Uint8Array(COLS*ROWS),ybuf=new Int16Array(COLS);
+    var cam={x:-150,z:-900,yaw:1.1},t0=null,lastT=0,lastDraw=-1e9,visible=true,running=false;
+    function render(t){
+      var tod=.5-.5*Math.cos(t*2*Math.PI/240),todL=Math.round(tod*40);
+      var paper=[lerp(DAY.paper[0],NIGHT.paper[0],tod),lerp(DAY.paper[1],NIGHT.paper[1],tod),lerp(DAY.paper[2],NIGHT.paper[2],tod)];
+      var horizon=11,scale=94.5,fov=1.2,eyeOff=4.5;
+      sample(cam.x,cam.z);var eye=eyeOff+Math.max(0,S.h);
+      for(var i=0;i<COLS*ROWS;i++){ch[i]=0;cf[i]=0;cm[i]=0;}
+      for(var x=0;x<COLS;x++){
+        ybuf[x]=ROWS;var ang=cam.yaw+(x-COLS/2)/COLS*fov,dx=Math.sin(ang),dz=Math.cos(ang);
+        for(var d=2;d<520;d+=(d<60?.75:d<200?1.5:4)){
+          var wx=cam.x+dx*d,wz=cam.z+dz*d;sample(wx,wz);var h=S.h,mi,tree=false;
+          if(h<0){h=0;mi=4;}else if(h<3)mi=2;else if(h>125)mi=3;else if(S.slope>6.5||h>90)mi=1;else{mi=0;if(S.m>.2&&h<65&&hash2(Math.floor(wx/3),Math.floor(wz/3))<.16)tree=true;}
+          var y=Math.round(horizon+((eye-h)/d)*scale);if(y<0)y=0;
+          if(y>=ybuf[x])continue;
+          var fog=Math.max(0,Math.min(1,(d-90)/330)),fogL=Math.round(fog*8.5),near=Math.max(0,1-d/420);
+          var ramp=ramps[mi],idx=Math.floor((.1+S.light*.45+near*.2)*ramp.length);if(idx<0)idx=0;if(idx>=ramp.length)idx=ramp.length-1;
+          for(var yy=y;yy<ybuf[x];yy++){
+            var g=ramp[idx],m=mi;
+            if(mi===4)g=ramps[4][(x+yy+Math.floor(d/7)+Math.floor(t*1.5))%6];
+            if(tree&&yy===y){g=trees[Math.floor(hash2(Math.floor(wx/3)+9,Math.floor(wz/3))*4)];m=5;}
+            if(fog>.62&&g!==' '&&((x*7+yy*13)%3===0))g=mi===4?'-':'.';
+            if(fog>.86&&((x+yy)%2===0))g=' ';
+            var ci=yy*COLS+x;ch[ci]=g;cm[ci]=m;cf[ci]=fogL;
+          }
+          ybuf[x]=y;
+        }
+      }
+      ctx.fillStyle='rgb('+(paper[0]|0)+','+(paper[1]|0)+','+(paper[2]|0)+')';ctx.fillRect(0,0,COLS*CW,ROWS*CH);
+      ctx.font=FONT;
+      var starT=Math.max(0,(tod-.55)/.45);
+      for(var yy=0;yy<ROWS;yy++)for(var x=0;x<COLS;x++){
+        var ci=yy*COLS+x,g=ch[ci];
+        if(!g){if(starT>0&&yy<horizon&&hash2(x*3+1,yy*5+7)<.035*starT){ctx.fillStyle=colour(6,5,todL,paper);ctx.fillText('.',x*CW,yy*CH);}continue;}
+        if(g===' ')continue;
+        ctx.fillStyle=colour(cm[ci],cf[ci],todL,paper);ctx.fillText(g,x*CW,yy*CH);
+      }
+    }
+    function loop(now){
+      running=false;if(!visible||document.hidden)return;
+      if(t0===null){t0=now;lastT=now;}
+      var t=(now-t0)/1000,dt=Math.min(.25,(now-lastT)/1000);lastT=now;
+      cam.yaw=1.1+.35*Math.sin(t/37);cam.x+=Math.sin(cam.yaw)*dt*1.0;cam.z+=Math.cos(cam.yaw)*dt*1.0;
+      if(now-lastDraw>=83){render(t);lastDraw=now;}
+      schedule();
+    }
+    function schedule(){if(running||reduce)return;running=true;requestAnimationFrame(loop);}
+    render(0);if(fb)fb.hidden=true;
+    if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){if(reduce)render(0);});
+    if(reduce)return;
+    if('IntersectionObserver' in window){new IntersectionObserver(function(es){visible=es[0].isIntersecting;if(visible)schedule();},{threshold:.05}).observe(cv);}
+    document.addEventListener('visibilitychange',function(){if(!document.hidden)schedule();});
+    schedule();
+  }
+
+  function profile(){
+    var cv=document.getElementById('profile');if(!cv)return;var ctx=cv.getContext('2d');if(!ctx)return;
+    var dpr=Math.min(2,window.devicePixelRatio||1),W=900,H=240;cv.width=W*dpr;cv.height=H*dpr;cv.style.width='100%';cv.style.height='auto';cv.style.aspectRatio='900 / 240';ctx.setTransform(dpr,0,0,dpr,0,0);
+    var cs=getComputedStyle(document.documentElement),ink=cs.getPropertyValue('--ink').trim()||'#26292A',muted=cs.getPropertyValue('--muted').trim()||'#6B7070',rule=cs.getPropertyValue('--rule').trim()||'#CBC9C0',accent=cs.getPropertyValue('--accent').trim()||'#5E7466';
+    var N=600,L=3000,z=-900,data=[];var lo=1e9,hi=-1e9;
+    for(var i=0;i<=N;i++){var p=parts(-1500+i/N*L,z);data.push(p);var s=p[3];if(s<lo)lo=s;if(s>hi)hi=s;if(p[0]<lo)lo=p[0];}
+    lo=Math.min(lo,-20);hi=Math.max(hi,120);var pad=18,left=8,right=96;
+    function X(i){return left+i/N*(W-left-right);}function Y(v){return H-pad-(v-lo)/(hi-lo)*(H-2*pad);}
+    ctx.clearRect(0,0,W,H);ctx.lineWidth=1;ctx.strokeStyle=rule;ctx.beginPath();ctx.moveTo(left,Y(0));ctx.lineTo(W-right,Y(0));ctx.stroke();
+    ctx.font='11px "IBM Plex Mono", ui-monospace, monospace';ctx.fillStyle=muted;ctx.textBaseline='middle';ctx.fillText('sea level',W-right+8,Y(0));
+    var series=[{k:0,c:muted,w:1,label:'continent'},{k:1,c:muted,w:1,label:'ridges'},{k:2,c:muted,w:1,label:'hills'},{k:3,c:accent,w:2,label:'sum'}];
+    var used=[];
+    series.forEach(function(s){ctx.strokeStyle=s.c;ctx.lineWidth=s.w;ctx.beginPath();for(var i=0;i<=N;i++){var v=data[i][s.k];var yy=Y(v);if(i===0)ctx.moveTo(X(i),yy);else ctx.lineTo(X(i),yy);}ctx.stroke();
+      var ly=Y(data[N][s.k]);used.forEach(function(u){if(Math.abs(u-ly)<13)ly=u+13;});used.push(ly);ctx.fillStyle=s.c;ctx.fillText(s.label,W-right+8,ly);});
+    ctx.fillStyle=muted;ctx.textBaseline='bottom';ctx.fillText('0 m',left,H-2);ctx.textAlign='right';ctx.fillText('3 km',W-right,H-2);ctx.textAlign='left';
+  }
+  try{hero();}catch(e){}
+  try{profile();}catch(e){}
+  if(window.matchMedia){var mq=window.matchMedia('(prefers-color-scheme: dark)');(mq.addEventListener?mq.addEventListener('change',function(){try{profile();}catch(e){}}):mq.addListener&&mq.addListener(function(){try{profile();}catch(e){}}));}
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){try{profile();}catch(e){}});
+})();
+</script>
+</body></html>
