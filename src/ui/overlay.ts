@@ -129,6 +129,7 @@ const CONTROLS: ReadonlyArray<readonly [string, string]> = [
   ['mouse', 'look (click to lock)'],
   ['shift', 'run'],
   ['ctrl', 'stroll'],
+  ['space', 'jump'],
   ['e', 'talk'],
   ['f', 'drift, the walker wanders on its own'],
   ['m', 'map'],

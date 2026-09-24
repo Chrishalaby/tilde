@@ -22,6 +22,8 @@ export const DECEL_TIME = 0.4;
 export const CAMERA_LAG = 0.15;
 export const LOOK_SENSITIVITY = 0.0022;
 export const MAX_WADE_DEPTH = 1.2;
+export const JUMP_HEIGHT = 1.1;
+export const GRAVITY = 13;
 
 export const CELL_W = 3;
 export const CELL_H = 5;

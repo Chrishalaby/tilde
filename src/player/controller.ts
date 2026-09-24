@@ -1,5 +1,5 @@
 import {
-  ACCEL_TIME, CAMERA_LAG, DECEL_TIME, EYE_HEIGHT, LOOK_SENSITIVITY, MAX_WADE_DEPTH,
+  ACCEL_TIME, CAMERA_LAG, DECEL_TIME, EYE_HEIGHT, GRAVITY, JUMP_HEIGHT, LOOK_SENSITIVITY, MAX_WADE_DEPTH,
   RUN_SPEED, SEA_LEVEL, STROLL_SPEED, WALK_SPEED,
 } from '../config';
 import { keyCode } from './keys';
@@ -50,6 +50,8 @@ export interface PlayerOptions {
 
 export const PLAYER_RADIUS = 0.35;
 
+const JUMP_SPEED = Math.sqrt(2 * GRAVITY * JUMP_HEIGHT);
+const JUMP_BUFFER = 0.15;
 const TURN_RATE = 1.1;
 const PITCH_LIMIT = Math.PI / 2 - 0.05;
 const PUSH_EPSILON = 1e-6;
@@ -64,6 +66,11 @@ export function createPlayer(opts: PlayerOptions): Player {
   let locked = false;
   let firstLockCb: (() => void) | null = null;
   let bobPhase = 0;
+  let feet = 0;
+  let lift = 0;
+  let airborne = false;
+  let jumpBuffer = 0;
+  let landDip = 0;
 
   const player: Player = {
     pose,
@@ -87,6 +94,7 @@ export function createPlayer(opts: PlayerOptions): Player {
     if (isTyping(ev)) return;
     const code = keyCode(ev);
     keys.add(code);
+    if (code === 'Space' && !ev.repeat) jumpBuffer = JUMP_BUFFER;
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(code)) ev.preventDefault();
   };
   const onKeyUp = (ev: KeyboardEvent) => { keys.delete(keyCode(ev)); };
@@ -218,12 +226,30 @@ export function createPlayer(opts: PlayerOptions): Player {
     view.x += (pose.x - view.x) * lagK;
     view.z += (pose.z - view.z) * lagK;
     const eyeGround = Math.max(player.groundHeight, SEA_LEVEL - MAX_WADE_DEPTH);
-    let targetY = eyeGround + EYE_HEIGHT;
-    if (opts.headBob && player.speed > 0.2) {
+    if (jumpBuffer > 0) jumpBuffer -= dt;
+    if (!airborne && jumpBuffer > 0) {
+      airborne = true;
+      feet = eyeGround;
+      lift = JUMP_SPEED;
+      jumpBuffer = 0;
+    }
+    if (airborne) {
+      lift -= GRAVITY * dt;
+      feet += lift * dt;
+      if (feet <= eyeGround && lift < 0) {
+        landDip = Math.min(0.14, -lift * 0.022);
+        feet = eyeGround;
+        lift = 0;
+        airborne = false;
+      }
+    }
+    landDip *= Math.exp(-dt / 0.14);
+    let targetY = (airborne ? feet : eyeGround) + EYE_HEIGHT - landDip;
+    if (!airborne && opts.headBob && player.speed > 0.2) {
       bobPhase += dt * player.speed * 2.2;
       targetY += Math.sin(bobPhase) * 0.035;
     }
-    view.y += (targetY - view.y) * (1 - Math.exp(-dt / 0.12));
+    view.y += (targetY - view.y) * (1 - Math.exp(-dt / (airborne ? 0.02 : 0.12)));
     const lookK = 1 - Math.exp(-dt / 0.06);
     view.yaw += (pose.yaw - view.yaw) * lookK;
     view.pitch += (pose.pitch - view.pitch) * lookK;
